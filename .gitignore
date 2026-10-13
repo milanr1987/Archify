@@ -5,3 +5,4 @@ __pycache__/
 config/sources.local.json
 data/
 output/
+.playwright-browsers/
