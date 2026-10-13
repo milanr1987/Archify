@@ -6,3 +6,6 @@ config/sources.local.json
 data/
 output/
 .playwright-browsers/
+
+*.egg-info/
+.superpowers/
