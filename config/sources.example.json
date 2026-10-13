@@ -1,0 +1,112 @@
+{
+  "workspaceRoot": "C:\\Workspace",
+  "projectRoots": [
+    "."
+  ],
+  "extraProjects": [
+    "skill-evals"
+  ],
+  "excludeNames": [
+    "Archify",
+    "node_modules",
+    ".git",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    "output",
+    "graphify-out",
+    "__pycache__"
+  ],
+  "skillRoots": [
+    {
+      "path": "C:\\Users\\Example\\.agents\\skills",
+      "profile": "agents",
+      "label": ".agents"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude\\skills",
+      "profile": "claude",
+      "label": ".claude"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-max\\skills",
+      "profile": "max",
+      "label": ".claude-max"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-pro\\skills",
+      "profile": "pro",
+      "label": ".claude-pro"
+    }
+  ],
+  "pluginRegistries": [
+    {
+      "path": "C:\\Users\\Example\\.claude\\plugins\\installed_plugins.json",
+      "profile": "claude"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-max\\plugins\\installed_plugins.json",
+      "profile": "max"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-pro\\plugins\\installed_plugins.json",
+      "profile": "pro"
+    }
+  ],
+  "mcpSources": [
+    {
+      "path": "C:\\Users\\Example\\.claude.json",
+      "format": "claude-json",
+      "profile": "claude"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude\\settings.json",
+      "format": "claude-json",
+      "profile": "claude"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-max\\.claude.json",
+      "format": "claude-json",
+      "profile": "max"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-max\\settings.json",
+      "format": "claude-json",
+      "profile": "max"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-pro\\.claude.json",
+      "format": "claude-json",
+      "profile": "pro"
+    },
+    {
+      "path": "C:\\Users\\Example\\.claude-pro\\settings.json",
+      "format": "claude-json",
+      "profile": "pro"
+    },
+    {
+      "path": "C:\\Users\\Example\\.codex\\config.toml",
+      "format": "codex-toml",
+      "profile": "codex"
+    }
+  ],
+  "documents": [
+    {
+      "path": "my-claude-system.md",
+      "title": "Moj Claude sistem"
+    },
+    {
+      "path": "claude-skillovi-i-plugini-inventar.md",
+      "title": "Inventar skillova i pluginova (2026-09-07)"
+    },
+    {
+      "path": "claude-ai-engineer-playbook.md",
+      "title": "AI engineer playbook"
+    },
+    {
+      "path": "MEDIUM_CLAUDE\\INDEX.md",
+      "title": "Medium indeks"
+    }
+  ]
+}
