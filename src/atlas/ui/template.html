@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{CSP}}">
+<meta name="atlas-inventory-hash" content="{{HASH}}">
+<title>Moje AI okruženje</title>
+<style>{{STYLES}}</style>
+</head>
+<body>
+<a class="skip" href="#results">Preskoči na rezultate</a>
+<header class="top">
+  <div class="title-row">
+    <h1>Moje AI okruženje</h1>
+    <p class="scanned" id="scanned"></p>
+  </div>
+  <div class="counters" id="counters" role="group" aria-label="Brojači po tipu"></div>
+  <div class="partial" id="partial" hidden>
+    <button type="button" id="partial-toggle" aria-expanded="false" aria-controls="warning-list"></button>
+    <ul id="warning-list" hidden></ul>
+  </div>
+  <div class="search-row">
+    <label for="search" class="visually-hidden">Pretraga</label>
+    <input id="search" type="search" placeholder="Pretraži ime, opis ili putanju (prečica /)" autocomplete="off" spellcheck="false">
+    <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="filters">Filteri</button>
+  </div>
+</header>
+<main class="layout">
+  <aside class="filters" id="filters" aria-label="Filteri">
+    <fieldset><legend>Tip</legend><div id="f-kind"></div></fieldset>
+    <fieldset><legend>Profil</legend><div id="f-profile"></div></fieldset>
+    <fieldset><legend>Porijeklo skilla</legend>
+      <label><input type="radio" name="origin" value="all" checked> Sve</label>
+      <label><input type="radio" name="origin" value="standalone"> Samostalan</label>
+      <label><input type="radio" name="origin" value="plugin"> Iz plugina</label>
+    </fieldset>
+    <fieldset><legend>Ostalo</legend>
+      <label><input type="checkbox" id="f-dup"> Samo duplikati</label>
+      <label><input type="checkbox" id="f-link"> Samo preko linka</label>
+    </fieldset>
+    <button type="button" id="clear-filters">Očisti filtere</button>
+  </aside>
+  <section class="results" id="results" aria-label="Rezultati" tabindex="-1">
+    <p class="count" id="count" aria-live="polite"></p>
+    <ul class="list" id="list" role="listbox" aria-label="Stavke"></ul>
+    <p class="empty" id="empty" hidden>Nijedna stavka ne odgovara pretrazi i filterima. Probaj kraći pojam ili „Očisti filtere“.</p>
+    <button type="button" id="more" hidden>Prikaži još</button>
+  </section>
+  <section class="detail" id="detail" aria-label="Detalji">
+    <button type="button" id="back" class="back">Nazad na listu</button>
+    <div id="detail-body"></div>
+  </section>
+</main>
+<script type="application/json" id="atlas-data">{{DATA}}</script>
+<script>{{SCRIPT}}</script>
+</body>
+</html>
