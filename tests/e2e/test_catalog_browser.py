@@ -74,7 +74,8 @@ class CatalogBrowserTests(unittest.TestCase):
         project=next(i for i in inv.items if i.kind=='project')
         project.metadata.update(lastCommitAt='2026-10-14T10:00:00+00:00',dirtyCount='3',branch='main',lastSessionAt='unknown')
         inv.items.append(Item(make_id('hook','phase6'),'hook','Stop',locations=[Location('settings','max',origin='standalone')],metadata={'event':'Stop','hookCount':'1','hookTypes':['command']}))
-        inv.profiles=['max','pro']
+        inv.profiles=['agents','max','pro']
+        inv.items.append(Item(make_id('hook','phase6-pre'),'hook','PreToolUse · Bash|Edit|Write|MultiEdit',locations=[Location('settings','pro',origin='standalone')],metadata={'event':'PreToolUse','matcher':'Bash|Edit|Write|MultiEdit','hookCount':'2','hookTypes':['command']}))
         path=Path(self._tmp.name)/'phase6.html'
         path.write_text(render_catalog(inv,inventory_hash(inv)),encoding='utf-8')
         page=self.open_page(path)
@@ -85,7 +86,18 @@ class CatalogBrowserTests(unittest.TestCase):
         self.assertIn('Varijante sadržaja',page.locator('#detail-body').text_content())
         self.assertIn('aaaaaaaaaaaa',page.locator('#detail-body').inner_text())
         page.locator('#hook-matrix-toggle').click()
-        self.assertIn('nema u ovom profilu',page.locator('#hook-matrix').inner_text())
+        matrix=page.locator('#hook-matrix')
+        self.assertEqual(matrix.locator('thead th').all_text_contents(),['Događaj / matcher','max','pro'])
+        self.assertIn('Profili bez ijednog hooka: agents',page.locator('#detail-body').inner_text())
+        self.assertIn('nema u ovom profilu',matrix.inner_text())
+        stop=matrix.locator('tbody tr').filter(has_text='Stop')
+        self.assertEqual(stop.locator('.mx-count').first.text_content(),'1')
+        self.assertEqual(stop.locator('.mx-type').first.text_content(),'command')
+        self.assertEqual(stop.locator('.mx-origin').first.text_content(),'settings')
+        # Nijedna ćelija ne lomi riječ: tekst ćelije stane u jedan red po elementu.
+        broken=page.evaluate("""() => Array.from(document.querySelectorAll('#hook-matrix .mx-count, #hook-matrix .mx-type, #hook-matrix .mx-origin'))
+            .filter(e => e.getClientRects().length > 1).length""")
+        self.assertEqual(broken,0)
         page.locator('#clear-filters').click()
         page.locator('#activity-sort').select_option('activity')
         self.assertEqual(page.locator('.row-name').first.inner_text(),project.name)
@@ -194,6 +206,24 @@ class CatalogBrowserTests(unittest.TestCase):
         self.assertIn("cross-skill", self.names(page))
         page.click("#clear-filters")
         self.assertEqual(page.locator("#count").text_content(), "8 stavki")
+
+    def test_hook_matrix_uses_list_space_and_closes(self):
+        inv, _ = synthetic_inventory()
+        for n, profile in enumerate(("claude", "max", "pro", "agents")):
+            inv.items.append(Item(make_id("hook", f"m{n}"), "hook", f"PreToolUse · Bash|Edit|Write|MultiEdit|Agent|Task{n}",
+                locations=[Location(f"C:\\h\\{profile}\\settings.json", profile, origin="standalone")],
+                metadata={"event": "PreToolUse", "matcher": f"Bash|Edit|Write|MultiEdit|Agent|Task{n}",
+                          "hookCount": "2", "hookTypes": ["command"]}))
+        path = Path(self._tmp.name) / "matrica-sirina.html"
+        path.write_text(render_catalog(inv, inventory_hash(inv)), encoding="utf-8")
+        page = self.open_page(path, width=1100, height=800)
+        page.click("#hook-matrix-toggle")
+        page.wait_for_selector("#hook-matrix")
+        self.assertFalse(page.locator("#results").is_visible())
+        self.assertTrue(page.evaluate("(() => { const s = document.querySelector('.matrix-scroll'); return s.scrollWidth <= s.clientWidth + 1; })()"))
+        page.click("#matrix-close")
+        self.assertTrue(page.locator("#results").is_visible())
+        self.assertEqual(page.evaluate("document.activeElement.id"), "hook-matrix-toggle")
 
     def test_list_scrolls_inside_its_box_and_page_stays_put(self):
         page = self.open_page(self.perf, width=1440, height=900)

@@ -146,7 +146,11 @@
     renderList();
   }
 
-  function refilter() { state.limit = PAGE; apply(); }
+  function refilter() {
+    // Matrica pokriva listu; promjena filtera ili pretrage vraća listu da se vidi rezultat.
+    if (state.matrix) { setMatrix(false); renderDetail(); }
+    state.limit = PAGE; apply();
+  }
 
   function renderList() {
     var list = $("list");
@@ -243,28 +247,55 @@
     var body = $("detail-body");
     body.textContent = "";
     if (state.matrix) {
-      body.appendChild(el("h2", "matrix-title", "Matrica hookova"));
+      var head = el("div", "matrix-head");
+      head.appendChild(el("h2", "matrix-title", "Matrica hookova"));
+      var close = el("button", "matrix-close", "Zatvori matricu");
+      close.type = "button"; close.id = "matrix-close";
+      close.addEventListener("click", closeDetail);
+      head.appendChild(close);
+      body.appendChild(head);
       body.appendChild(el("p", "note", "Deklaracije u snimku; prazno nije dokaz odsustva ako izvor nije čitljiv. Pogledaj upozorenja izvora."));
       var wrap = el("div", "matrix-scroll");
       wrap.tabIndex = 0; wrap.setAttribute("role", "region"); wrap.setAttribute("aria-label", "Tabela hookova, horizontalno skrolovanje");
       var table = el("table", "hook-matrix"); table.id = "hook-matrix";
       var caption = el("caption", null, "Hookovi po profilu"); table.appendChild(caption);
+      // Kolone samo za profile sa bar jednim hookom; ostali se navode ispod tabele.
+      var shown = checks.profiles.filter(function (p) {
+        return checks.hooks.some(function (row) { return (row.cells[p] || []).length; });
+      });
+      var empty = checks.profiles.filter(function (p) { return shown.indexOf(p) === -1; });
       var header = el("tr");
-      var label = el("th", null, "Event / matcher"); label.scope = "col"; header.appendChild(label);
-      checks.profiles.forEach(function (p) { var th = el("th", null, p); th.scope = "col"; header.appendChild(th); });
+      var label = el("th", null, "Događaj / matcher"); label.scope = "col"; header.appendChild(label);
+      shown.forEach(function (p) { var th = el("th", "mx-profile", p); th.scope = "col"; header.appendChild(th); });
       var thead = el("thead"); thead.appendChild(header); table.appendChild(thead);
       var tbody = el("tbody");
       checks.hooks.forEach(function (row) {
-        var tr = el("tr"); var th = el("th", null, row.event + " / " + row.matcher); th.scope = "row"; tr.appendChild(th);
-        checks.profiles.forEach(function (profile) {
+        var tr = el("tr"); var th = el("th"); th.scope = "row";
+        th.appendChild(el("span", "mx-event", row.event));
+        if (row.matcher) th.appendChild(el("span", "mx-matcher", row.matcher));
+        tr.appendChild(th);
+        shown.forEach(function (profile) {
           var entries = row.cells[profile] || [];
-          var text = entries.length ? entries.map(function (e) { return e.hookCount + " · " + e.hookTypes.join(", ") + " · " + e.origin; }).join("; ") : "nema u ovom profilu";
-          tr.appendChild(el("td", entries.length ? "" : "matrix-missing", text));
+          var td = el("td", entries.length ? "mx-cell" : "mx-cell matrix-missing");
+          if (!entries.length) {
+            td.appendChild(el("span", "mx-dash", "—"));
+            td.appendChild(el("span", "visually-hidden", "nema u ovom profilu"));
+          }
+          entries.forEach(function (e) {
+            var cell = el("div", "mx-entry");
+            cell.appendChild(el("span", "mx-count", String(e.hookCount)));
+            cell.appendChild(el("span", "mx-type", e.hookTypes.join(", ")));
+            cell.appendChild(el("span", "mx-origin", e.origin));
+            td.appendChild(cell);
+          });
+          tr.appendChild(td);
         });
         tbody.appendChild(tr);
       });
-      table.appendChild(tbody); wrap.appendChild(table); body.appendChild(wrap);
-      if (!checks.hooks.length) body.appendChild(el("p", "note", "Nema pronađenih deklaracija hookova."));
+      table.appendChild(tbody); wrap.appendChild(table);
+      if (checks.hooks.length) body.appendChild(wrap);
+      else body.appendChild(el("p", "note", "Nema pronađenih deklaracija hookova."));
+      if (empty.length) body.appendChild(el("p", "note mx-empty", "Profili bez ijednog hooka: " + empty.join(", ")));
       return;
     }
     var it = state.selected ? byId[state.selected] : null;
@@ -387,8 +418,14 @@
     else location.hash = id;
   }
 
+  function setMatrix(on) {
+    state.matrix = on;
+    document.body.classList.toggle("show-matrix", on);
+    document.body.classList.toggle("show-detail", on);
+  }
+
   function fromHash() {
-    state.matrix = false;
+    if (state.matrix) setMatrix(false);
     var id = decodeURIComponent(location.hash.slice(1));
     state.selected = id && byId[id] ? id : null;
     document.body.classList.toggle("show-detail", Boolean(state.selected));
@@ -398,7 +435,7 @@
   }
 
   function closeDetail() {
-    if (state.matrix) { state.matrix = false; document.body.classList.remove("show-detail"); renderDetail(); $("hook-matrix-toggle").focus(); return; }
+    if (state.matrix) { setMatrix(false); renderDetail(); $("hook-matrix-toggle").focus(); return; }
     var id = state.selected;
     location.hash = "";
     var row = id ? document.getElementById("opt-" + id) : null;
@@ -457,7 +494,7 @@
     $("f-drift").addEventListener("change", function () { state.drift = this.checked; refilter(); });
     $("activity-sort").addEventListener("change", function () { state.sort = this.value; refilter(); });
     $("hook-matrix-toggle").addEventListener("click", function () {
-      state.matrix = true; document.body.classList.add("show-detail"); renderDetail();
+      setMatrix(true); renderDetail();
       if (window.matchMedia("(max-width: 699px)").matches) { $("back").focus(); }
     });
     // Browser može vratiti staro stanje polja pri osvježavanju; stanje liste uvijek prati polje.
