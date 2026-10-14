@@ -82,6 +82,14 @@ class SkillScanTests(TempDirTestCase):
         codes = [(w.code, w.severity) for w in c.warnings if "broken" in w.source]
         self.assertEqual(codes, [("bad-frontmatter", "warn")])
 
+    def test_invalid_yaml_with_plain_lines_keeps_description_as_info(self):
+        path = write(self.tmp / "lenient" / "SKILL.md",
+                     "---\nname: dnevnik\ndescription: Dnevni izvjestaj. Argument opciono: datum.\n---\n")
+        collector = Collector()
+        name, description = SkillReader(collector).read(str(path))
+        self.assertEqual((name, description), ("dnevnik", "Dnevni izvjestaj. Argument opciono: datum."))
+        self.assertEqual([(w.code, w.severity) for w in collector.warnings], [("lenient-frontmatter", "info")])
+
     def test_non_string_frontmatter_values(self):
         cases = (123, ["x"], {"x": 1}, True)
         import yaml
