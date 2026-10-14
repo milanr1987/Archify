@@ -4,6 +4,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+from datetime import datetime
 from dataclasses import asdict, dataclass, field
 
 SCHEMA_VERSION = 1
@@ -12,8 +14,8 @@ EVIDENCE = ("observed", "documented")
 RELATION_TYPES = ("contains", "documented-by", "configured-for")
 SEVERITIES = ("info", "warn")
 METADATA_KEYS: dict[str, frozenset[str]] = {
-    "project": frozenset({"projectType", "scriptNames", "markers"}),
-    "skill": frozenset(),
+    "project": frozenset({"projectType", "scriptNames", "markers", "lastCommitAt", "dirtyCount", "branch", "lastSessionAt", "sessionTimes"}),
+    "skill": frozenset({"contentStatus", "ownDrift"}),
     "plugin": frozenset({"marketplace", "version", "scope", "projectPath", "installedAt", "lastUpdated"}),
     "mcp": frozenset({"transport", "executableName", "envNames", "scope", "projectPath", "sourceFormat"}),
     "document": frozenset({"referenceStatus"}),
@@ -21,7 +23,7 @@ METADATA_KEYS: dict[str, frozenset[str]] = {
     "agent": frozenset(),
     "hook": frozenset({"event", "matcher", "hookCount", "hookTypes"}),
 }
-LIST_METADATA = frozenset({"scriptNames", "markers", "envNames", "hookTypes"})
+LIST_METADATA = frozenset({"scriptNames", "markers", "envNames", "hookTypes", "sessionTimes"})
 
 
 class InventoryError(ValueError):
@@ -36,6 +38,7 @@ class Location:
     link_target: str | None = None
     origin: str | None = None
     root_label: str | None = None
+    contentHash: str | None = None
 
     def key(self) -> tuple[str, str, str, str]:
         return (os.path.normcase(self.path), self.profile or "", self.origin or "", self.root_label or "")
@@ -76,6 +79,7 @@ class Inventory:
     relations: list[Relation]
     warnings: list[ScanWarning]
     partial: bool
+    profiles: list[str] = field(default_factory=list)
 
 
 def _opt_str(value: object) -> bool:
@@ -90,6 +94,8 @@ def _validate_inventory(inv: Inventory) -> None:
         errors.append("scanned_at")
     if not isinstance(inv.partial, bool):
         errors.append("partial")
+    if not isinstance(inv.profiles, list) or not all(isinstance(p,str) and p for p in inv.profiles):
+        errors.append("profiles")
     ids: set[str] = set()
     for item in inv.items:
         where = f"stavka {str(item.id)[:12]}"
@@ -118,6 +124,8 @@ def _validate_inventory(inv: Inventory) -> None:
                 _opt_str(v) for v in (loc.profile, loc.link_target, loc.origin, loc.root_label)
             ):
                 errors.append(f"{where}: polja lokacije")
+            if loc.contentHash is not None and (item.kind != 'skill' or not isinstance(loc.contentHash,str) or not (loc.contentHash=='unknown' or re.fullmatch(r'[0-9a-f]{64}',loc.contentHash))):
+                errors.append(f"{where}: contentHash")
         allowed = METADATA_KEYS.get(item.kind, frozenset())
         if not isinstance(item.metadata, dict):
             errors.append(f"{where}: metadata")
@@ -130,6 +138,17 @@ def _validate_inventory(inv: Inventory) -> None:
                     errors.append(f"{where}: {key} mora biti lista stringova")
             elif not isinstance(value, str):
                 errors.append(f"{where}: {key} mora biti string")
+            elif key=='contentStatus' and value not in ('isti','razlikuje se','nepoznato'):
+                errors.append(f"{where}: contentStatus")
+            elif key=='ownDrift' and value not in ('true','false'):
+                errors.append(f"{where}: ownDrift")
+            elif key in ('dirtyCount','hookCount') and not (key=='dirtyCount' and value=='unknown') and not re.fullmatch(r'[0-9]+',value):
+                errors.append(f"{where}: {key}")
+            elif key in ('lastCommitAt','lastSessionAt') and value!='unknown':
+                try:
+                    if not datetime.fromisoformat(value).tzinfo: errors.append(f"{where}: {key} timezone")
+                except ValueError:
+                    errors.append(f"{where}: {key} datum")
     for rel in inv.relations:
         if rel.type not in RELATION_TYPES:
             errors.append(f"relacija: nepoznat tip {rel.type!r}")
@@ -152,12 +171,18 @@ def validate_inventory(inv: Inventory) -> None:
 
 
 def inventory_to_dict(inv: Inventory) -> dict:
-    return asdict(inv)
+    data=asdict(inv)
+    if not inv.profiles:
+        data.pop('profiles')
+    for item in data['items']:
+        for loc in item['locations']:
+            if loc['contentHash'] is None:loc.pop('contentHash')
+    return data
 
 
 def inventory_from_dict(data: dict) -> Inventory:
     try:
-        if not isinstance(data, dict) or set(data) != {"schema_version", "scanned_at", "items", "relations", "warnings", "partial"}:
+        if not isinstance(data, dict) or set(data) not in ({"schema_version", "scanned_at", "items", "relations", "warnings", "partial"}, {"schema_version", "scanned_at", "items", "relations", "warnings", "partial", "profiles"}):
             raise InventoryError("neispravna polja inventara")
         fields = {"id", "kind", "name", "description", "locations", "evidence", "metadata", "duplicate_group"}
         if not isinstance(data["items"], list) or any(not isinstance(raw, dict) or set(raw) != fields for raw in data["items"]):
@@ -181,6 +206,7 @@ def inventory_from_dict(data: dict) -> Inventory:
             relations=[Relation(**rel) for rel in data["relations"]],
             warnings=[ScanWarning(**w) for w in data["warnings"]],
             partial=data["partial"],
+            profiles=data.get('profiles',[]),
         )
     except (KeyError, TypeError) as exc:
         raise InventoryError(f"neispravna struktura inventara ({type(exc).__name__})") from None

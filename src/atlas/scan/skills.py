@@ -10,6 +10,7 @@ from atlas.identity import make_id, norm_path
 from atlas.model import Item, Location
 from atlas.scan.collector import Collector
 from atlas.textutil import clean_text
+from atlas.scan.state import content_hash
 
 WALK_MESSAGES = {
     "link-cycle": "ciklus linkova; ta grana je prekinuta",
@@ -29,6 +30,7 @@ class SkillReader:
         self.collector = collector
         self.cache: dict[str, tuple[str, str]] = {}
         self.outside_warned: set[str] = set()
+        self.hashes: dict[str,str] = {}
 
     def read(self, skill_md: str) -> tuple[str, str]:
         key = norm_path(skill_md)
@@ -89,7 +91,11 @@ def add_skill_root(
             link_target=os.path.dirname(target) if target else None,
             origin=origin,
             root_label=label,
+            contentHash=reader.hashes.get(real),
         )
+        if not location.contentHash:
+            location.contentHash=content_hash(os.path.dirname(skill_md),collector)
+            reader.hashes[real]=location.contentHash
         item = Item(id=make_id("skill", real), kind="skill", name=name,
                     description=description, locations=[location])
         if collector.add_item(item):

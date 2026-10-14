@@ -15,6 +15,7 @@ from atlas.scan.mcp import scan_mcp
 from atlas.scan.plugins import scan_plugins
 from atlas.scan.projects import scan_projects
 from atlas.scan.skills import SkillReader, scan_skills
+from atlas.scan.state import enrich_state
 
 
 @dataclass
@@ -22,6 +23,7 @@ class ScanOutcome:
     inventory: Inventory
     sources: list[SourceStatus]
     duration_s: float
+    git_duration_s: float = 0.0
 
 
 def finalize(collector: Collector, now: datetime) -> Inventory:
@@ -61,7 +63,9 @@ def build_inventory(config: Config, *, now: datetime | None = None,
     if not collector.limit_hit: scan_plugins(config, collector, reader, roots)
     if not collector.limit_hit: scan_mcp(config, collector, projects.mcp_files, projects.index)
     if not collector.limit_hit: scan_documents(config, collector)
+    git_duration = enrich_state(config, collector)
     inventory = finalize(collector, now or datetime.now().astimezone())
+    inventory.profiles=sorted({r.profile for r in (*config.skill_roots,*config.plugin_registries,*config.mcp_sources)})
     validate_inventory(inventory)
     sources = sorted(set(collector.sources), key=lambda s: (s.kind, s.path.lower(), s.status))
-    return ScanOutcome(inventory, sources, time.perf_counter() - start)
+    return ScanOutcome(inventory, sources, time.perf_counter() - start, git_duration)
