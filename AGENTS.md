@@ -7,5 +7,5 @@
 - Iz MCP izvora u izlaz smiju samo: ime, profil, scope, projectPath, transport, executableName, envNames, sourceFormat.
 - Iz hookova u izlaz smiju samo: event, matcher, hookCount, hookTypes. Nikad command/prompt/url/headers/env (spec Faze 4).
 - UI: sadržaj ide u DOM samo preko `textContent`; nikakvi eksterni resursi.
-- `config/sources.local.json`, `data/`, `output/`, `.venv/`, `.playwright-browsers/` nisu u gitu.
+- `config/sources.local.json`, `config/maps/`, `data/`, `output/`, `.venv/`, `.playwright-browsers/` nisu u gitu. Repo je javan: opisi privatnih projekata ne idu u git.
 - Faze 2–4 imaju vlastite specove u `docs/specs/`. Novi tip podataka ili izvor: prvo novi spec.
