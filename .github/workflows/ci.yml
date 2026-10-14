@@ -29,4 +29,11 @@ jobs:
           .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
           .\.venv\Scripts\python.exe -m playwright install chromium
       - name: Unit, integration and browser tests
-        run: .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v *>&1 | Tee-Object -FilePath test-output.txt
+          $code = $LASTEXITCODE
+          # Imena palih testova i greške kao javne anotacije (log run-a vidi samo vlasnik repoa).
+          Select-String -Path test-output.txt -Pattern '^(FAIL|ERROR): (.+)$' | ForEach-Object { "::error title=Test::$($_.Matches[0].Value)" }
+          Select-String -Path test-output.txt -Pattern '^\w*(Error|Exception): .+$' | Select-Object -First 10 | ForEach-Object { "::error title=Uzrok::$($_.Line)" }
+          exit $code
