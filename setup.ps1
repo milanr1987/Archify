@@ -1,7 +1,8 @@
 param(
     [string]$PythonExe = 'python',
     [switch]$WithMaps,
-    [switch]$Development
+    [switch]$Development,
+    [switch]$NoShortcut
 )
 $ErrorActionPreference = 'Stop'
 Push-Location $PSScriptRoot
@@ -43,7 +44,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Init nije uspio.' }
     & $venvPython -m atlas refresh
     if ($LASTEXITCODE -notin @(0,2)) { throw 'Prvo skeniranje nije uspjelo.' }
-    Write-Host 'Spremno. Otvori katalog: .\atlas.cmd open'
+    if (-not $NoShortcut) {
+        & (Join-Path $PSScriptRoot 'tools\create_shortcut.ps1')
+    }
+    Write-Host 'Spremno. Dvoklik na "AI Atlas" na Desktopu osvjezi i otvori katalog (ili: .\atlas.cmd open).'
     Write-Host 'Ako izvori nisu dostupni, uredi config/sources.local.json pa pokreni .\atlas.cmd refresh.'
 }
 finally { Pop-Location }

@@ -58,7 +58,25 @@ class CliTests(TempDirTestCase):
         self.assertIn(f"Config: {self.app / 'config/sources.local.json'}", out)
         write(self.app / "config/sources.current.json", json.dumps(self.config, ensure_ascii=False))
         _, out, _ = run(["scan"], self.app)
-        self.assertIn(f"Config: {self.app / 'config/sources.current.json'}", out)
+        self.assertIn(f"Config: {self.app / 'config/sources.local.json'}", out)
+
+    def test_launch_refreshes_and_opens_without_console(self):
+        from unittest import mock
+        with mock.patch("atlas.cli._open_catalog") as opened, mock.patch("atlas.cli._show_error") as shown:
+            code, _, _ = run(["launch"], self.app)
+        self.assertEqual(code, 0)
+        self.assertTrue(self.catalog.exists())
+        opened.assert_called_once()
+        shown.assert_not_called()
+
+    def test_launch_shows_error_window_on_failure(self):
+        from unittest import mock
+        write(self.app / "config/sources.local.json", "{")
+        with mock.patch("atlas.cli._open_catalog") as opened, mock.patch("atlas.cli._show_error") as shown:
+            code, _, _ = run(["launch"], self.app)
+        self.assertEqual(code, 1)
+        opened.assert_not_called()
+        self.assertIn("config nije ispravan JSON", shown.call_args.args[0])
 
     def test_build_without_inventory_fails(self):
         code, _, err = run(["build"], self.app)

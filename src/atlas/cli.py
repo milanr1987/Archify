@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import sys
@@ -55,8 +57,7 @@ def _cmd_init(paths: AppPaths, config_arg: str | None) -> int:
 
 
 def _scan(paths: AppPaths, config_arg: str | None) -> ScanOutcome:
-    current = paths.config_dir / 'sources.current.json'
-    selected = current if config_arg is None and current.is_file() else paths.resolve_config(config_arg)
+    selected = paths.resolve_config(config_arg)
     print(f"Config: {selected}")
     return build_inventory(load_config(selected))
 
@@ -115,14 +116,38 @@ def _cmd_note(paths: AppPaths, item_id: str, *, text: str | None,
     return 0
 
 
-def _cmd_open(paths: AppPaths) -> int:
-    if not paths.catalog.exists():
-        _err(f"Greška: nema {paths.catalog}. Pokreni prvo: atlas refresh")
-        return 1
+def _open_catalog(paths: AppPaths) -> None:
     if os.name == "nt":
         os.startfile(str(paths.catalog))  # bez shella
     else:
         webbrowser.open(paths.catalog.as_uri())
+
+
+def _cmd_open(paths: AppPaths) -> int:
+    if not paths.catalog.exists():
+        _err(f"Greška: nema {paths.catalog}. Pokreni prvo: atlas refresh")
+        return 1
+    _open_catalog(paths)
+    return 0
+
+
+def _show_error(message: str) -> None:
+    """launch radi bez konzole (pythonw), pa grešku prikazuje u Windows prozoru."""
+    if os.name == "nt":
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, message, "AI Atlas", 0x10)
+    else:
+        _err(message)
+
+
+def _cmd_launch(app_root: Path | None) -> int:
+    errors = io.StringIO()
+    with contextlib.redirect_stderr(errors), contextlib.redirect_stdout(io.StringIO()):
+        code = main(["refresh"], app_root=app_root)
+    if code == 1:
+        _show_error("Osvježavanje kataloga nije uspjelo.\n\n" + (errors.getvalue().strip() or "Nepoznata greška."))
+        return 1
+    _open_catalog(AppPaths(app_root))
     return 0
 
 
@@ -140,6 +165,7 @@ def main(argv: list[str] | None = None, *, app_root: Path | None = None) -> int:
         ("build", "napravi output/index.html iz data/inventory.json"),
         ("refresh", "scan + build"),
         ("open", "otvori output/index.html"),
+        ("launch", "refresh pa open, bez terminala; greška u prozoru (za prečicu na Desktopu)"),
     ):
         command = sub.add_parser(name, help=help_text)
         if name in ("init", "scan", "refresh"):
@@ -161,6 +187,8 @@ def main(argv: list[str] | None = None, *, app_root: Path | None = None) -> int:
     except SystemExit as exc:
         return 0 if exc.code == 0 else 1
     paths = AppPaths(app_root)
+    if args.command == "launch":
+        return _cmd_launch(app_root)
     try:
         if args.command == 'note':
             if (args.clear_tags and args.tags is not None) or (args.delete and
