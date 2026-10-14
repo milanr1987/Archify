@@ -113,6 +113,8 @@ Sortiranje „Zadnja aktivnost projekta“ koristi kasniji datum commita ili Cla
 
 Primjer: pokreni `.\atlas.cmd refresh`, otvori `.\atlas.cmd open`, uključi „Samo različit sadržaj“ i izaberi skill da vidiš varijante. „Matrica hookova“ poredi deklaracije profila, a „Zadnja aktivnost projekta“ sortira projekte prema dostupnim datumima.
 
+Brzina: hashovi skillova se pamte u privatnom `data/skill-hash-cache.json` i fajlovi se ponovo čitaju samo kad se promijeni ime, veličina ili vrijeme izmjene nekog fajla u folderu skilla. Prvo skeniranje na novom računaru je sporije (čita sve fajlove; Windows Defender ih provjerava pri otvaranju), sljedeća traju nekoliko sekundi. Ako je jedan projekat stalno „unknown“ za Git i refresh čeka ~5 s, njegov Git indeks je zastario (npr. poslije kopiranja foldera): jednom pokreni `git status` u tom projektu, pa se indeks osvježi.
+
 Isti hash ne znači da je skill učitan u sesiji. `lastSessionAt` je mtime fajla, a ne vrijeme posljednje poruke ili dokaz rada. Claude Code može obrisati stare sesije prema `cleanupPeriodDays`; arhivirane/obrisane sesije zato nisu u ovom snimku. Postavka se ne mijenja niti čita radi ovog pregleda. Izvor: [Claude Code settings](https://code.claude.com/docs/en/settings).
 
 ## Tačnost i privatnost
