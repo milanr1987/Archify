@@ -19,6 +19,8 @@ class AppPaths:
         self.inventory = self.data_dir / "inventory.json"
         self.report = self.data_dir / "scan-report.md"
         self.catalog = self.output_dir / "index.html"
+        self.overrides = self.config_dir / "overrides.json"
+        self.map_registry = self.data_dir / 'map-registry.json'
         self.lock = self.data_dir / ".atlas.lock"
         self.journal = self.data_dir / ".publish-journal.json"
 

@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from atlas.catalog import render_catalog
+from atlas.overlay import Note, Overlay
 from atlas.identity import make_id
 from atlas.model import SCHEMA_VERSION, Inventory, Item, Location, Relation, ScanWarning, inventory_hash, validate_inventory
 
@@ -73,6 +74,17 @@ class CatalogBrowserTests(unittest.TestCase):
         small, cls.ids = synthetic_inventory()
         cls.small = tmp / "mali katalog.html"
         cls.small.write_text(render_catalog(small, inventory_hash(small)), encoding="utf-8")
+        cls.notes = tmp / 'biljeske.html'
+        cls.notes.write_text(render_catalog(small, inventory_hash(small),
+            Overlay({cls.ids['fire']: Note(XSS + ' moja bilješka', ['Đurđevak'])})), encoding='utf-8')
+        project = next(it for it in small.items if it.kind == 'project')
+        cls.map_fixture = tmp / 'map-katalog.html'
+        cls.map_fixture.write_text(render_catalog(small,inventory_hash(small),maps=[{
+            'projectId':project.id,'title':'Demo mapa','htmlPath':'maps/demo.html',
+            'analysisPath':'analysis/demo.json','generatedAt':small.scanned_at,
+            'sourceFingerprint':'b'*64,'status':'stale'}]),encoding='utf-8')
+        (tmp/'maps').mkdir()
+        (tmp/'maps/demo.html').write_text('<html><body><p id="demo">Local map</p></body></html>',encoding='utf-8')
         perf, _ = synthetic_inventory(extra=2000)
         cls.perf_count = len(perf.items)
         cls.perf = tmp / "perf.html"
@@ -109,6 +121,30 @@ class CatalogBrowserTests(unittest.TestCase):
         self.assertEqual(page.locator("img").count(), 0)
         self.assertEqual(self.dialogs, [])
         self.assertEqual([u for u in self.requests if not u.startswith(("file:", "data:"))], [])
+
+    def test_notes_search_and_safe_display(self):
+        page = self.open_page(self.notes)
+        page.fill('#search', 'moja biljeska')
+        self.assertEqual(self.names(page), ['firecrawl'])
+        page.locator('#list .row').click()
+        self.assertEqual(page.locator('.item-id').text_content(), self.ids['fire'])
+        self.assertEqual(page.locator('.detail-note').text_content(), XSS + ' moja bilješka')
+        self.assertEqual(page.locator('.note-tags').text_content(), 'Đurđevak')
+        page.fill('#search', 'djurdjevak')
+        self.assertIn('firecrawl', self.names(page))
+        self.assertEqual(page.locator('img').count(), 0)
+        self.assertEqual(self.dialogs, [])
+        self.assertEqual([u for u in self.requests if not u.startswith(('file:', 'data:'))], [])
+
+    def test_map_status_and_relative_link(self):
+        page = self.open_page(self.map_fixture)
+        page.fill('#search','djurdjevak')
+        page.locator('#list .row').click()
+        self.assertEqual(page.locator('.map-status').text_content(),'Mapa: Zastarjela')
+        self.assertEqual(page.locator('.map-link').get_attribute('href'),'maps/demo.html')
+        page.locator('.map-link').click()
+        self.assertEqual(page.locator('#demo').text_content(),'Local map')
+        self.assertEqual([u for u in self.requests if not u.startswith(('file:','data:'))], [])
 
     def test_search_folds_diacritics(self):
         page = self.open_page(self.small)

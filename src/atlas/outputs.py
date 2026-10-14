@@ -9,6 +9,7 @@ from atlas.model import Inventory, canonical_json, inventory_from_dict, inventor
 from atlas.paths import AppPaths
 from atlas.report import render_report
 from atlas.writeout import Target
+from atlas.overlay import Overlay, canonical_overlay, overlay_from_dict
 
 
 def inventory_target(paths: AppPaths, inv: Inventory) -> Target:
@@ -29,5 +30,10 @@ def report_target(paths: AppPaths, outcome: ScanOutcome, inv_hash: str) -> Targe
     return Target(paths.report, render_report(outcome, inv_hash), check)
 
 
-def catalog_target(paths: AppPaths, inv: Inventory, inv_hash: str) -> Target:
-    return Target(paths.catalog, render_catalog(inv, inv_hash), lambda text: validate_catalog(text, inv_hash))
+def catalog_target(paths: AppPaths, inv: Inventory, inv_hash: str, overlay: Overlay | None = None, maps: list[dict] | None = None) -> Target:
+    return Target(paths.catalog, render_catalog(inv, inv_hash, overlay, maps), lambda text: validate_catalog(text, inv_hash))
+
+
+def overlay_target(paths: AppPaths, overlay: Overlay) -> Target:
+    return Target(paths.overrides, canonical_overlay(overlay),
+                  lambda text: overlay_from_dict(json.loads(text)))

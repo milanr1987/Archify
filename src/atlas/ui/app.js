@@ -46,6 +46,8 @@
   }
 
   var data = JSON.parse($("atlas-data").textContent);
+  var notes = JSON.parse($("atlas-overlay").textContent).notes;
+  var maps = JSON.parse($("atlas-maps").textContent);
   var items = data.items;
   var byId = Object.create(null);
   var related = Object.create(null);
@@ -57,6 +59,7 @@
     byId[it.id] = it;
     counts[it.kind] = (counts[it.kind] || 0) + 1;
     var parts = [it.name, it.description];
+    if (notes[it.id]) parts.push(notes[it.id].text, notes[it.id].tags.join(" "));
     var profiles = new Set();
     it.locations.forEach(function (l) {
       parts.push(l.path);
@@ -198,7 +201,23 @@
     title.tabIndex = -1;
     body.appendChild(title);
     body.appendChild(el("p", "detail-kind", KIND_SINGULAR[it.kind]));
+    body.appendChild(el("p", "", "ID za CLI bilješke:"));
+    body.appendChild(el("code", "path item-id", it.id));
+    if (it.kind === "project") maps.filter(function (map) { return map.projectId === it.id; }).forEach(function (map) {
+      var labels = { current: "Aktuelna", stale: "Zastarjela", unverified: "Neprovjerena" };
+      body.appendChild(el("p", "map-status", "Mapa: " + labels[map.status]));
+      var link = el("a", "map-link", map.title);
+      if (/^maps\/[a-z0-9]+(?:-[a-z0-9]+)*\.html$/.test(map.htmlPath)) {
+        link.setAttribute("href", map.htmlPath);
+        body.appendChild(link);
+      }
+    });
     if (it.description) body.appendChild(el("p", "detail-desc", it.description));
+    if (notes[it.id]) {
+      body.appendChild(el("h3", "", "Bilješka"));
+      body.appendChild(el("p", "detail-note", notes[it.id].text));
+      if (notes[it.id].tags.length) body.appendChild(el("p", "note-tags", notes[it.id].tags.join(", ")));
+    }
     body.appendChild(el("p", "evidence", it.evidence === "observed" ? "Pronađeno na disku" : "Dokumentovano; trenutno stanje nije potvrđeno"));
     if (it.kind === "mcp") body.appendChild(el("p", "note", "Deklarisan u konfiguraciji. Katalog ne provjerava da li server radi."));
     if (it.kind === "document") body.appendChild(el("p", "note", "Sadržaj dokumenta opisuje stanje u vrijeme pisanja; skener ga ne potvrđuje."));

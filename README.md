@@ -1,7 +1,9 @@
-# AI Workspace Atlas
+# Archify
 
-Lokalni katalog projekata, skillova, pluginova, MCP konfiguracija i dokumenata.
+**AI Workspace Atlas** je lokalni katalog projekata, skillova, pluginova, MCP konfiguracija i dokumenata, sa privatnim bilješkama i projektnim mapama.
 Otvori `output/index.html` dvoklikom: pretraga, filteri, detalji i kopiranje putanja rade bez servera i interneta.
+
+Repo sadrži kod, testove, setup i dokumentaciju. Svaki računar pravi svoj inventar; privatni podaci i lokalno okruženje se ne preuzimaju iz Gita. Za korištenje nisu potrebni pretplata, hosting ili API ključ. Internet je potreban za početno preuzimanje besplatnih zavisnosti.
 
 ## Svakodnevna upotreba
 
@@ -24,17 +26,55 @@ Za pronalaženje putanje koristi „Kopiraj putanju“; browser fallback označa
 
 ## Instalacija na drugom računaru
 
-Potreban je Python 3.12+. Ako `python` nije dostupan, koristi punu putanju instaliranog interpretera.
+Potreban je **Python 3.12+**, preporučeno **Python 3.13**, i browser. Git je potreban samo za kloniranje; možeš koristiti GitHub **Code → Download ZIP**, pa raspakovati folder.
+
+Iz PowerShella:
+
+```powershell
+git clone https://github.com/milanr1987/Archify.git
+cd Archify
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
+.\atlas.cmd open
+```
+
+Ako koristiš ZIP, otvori PowerShell u raspakovanom folderu i pokreni posljednje dvije komande. ExecutionPolicy važi za taj poziv; skripta ne mijenja trajnu sistemsku politiku.
+
+Setup pravi lokalni `.venv`, instalira paket, pravi config i generiše prvi katalog. Ako je Python na posebnoj lokaciji:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -PythonExe "C:\putanja\do\python.exe"
+```
+
+Alternativa bez setup skripte:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 .\atlas.cmd init
 .\atlas.cmd refresh
+.\atlas.cmd open
 ```
 
 `init` kreira `config/sources.local.json` i ne prepisuje postojeći fajl. `atlas.cmd` uvijek koristi lokalni `.venv`.
 Paket koristi editable instalaciju i namijenjen je radu iz ovog projektnog foldera; nije prenosiva wheel aplikacija.
+Ne kopiraj `.venv` sa drugog računara: pokreni setup na svakom novom računaru. Nepostojeći Claude profili mogu dati upozorenja; uredi izvore koje stvarno koristiš, pa ponovi refresh.
+
+## Lokalne bilješke (Faza 2)
+
+U detaljima stavke katalog prikazuje njen ID. Koristi taj ID kroz CLI:
+
+```powershell
+.\atlas.cmd note ITEM_ID --text "Moja bilješka" --tag "korisno"
+.\atlas.cmd note ITEM_ID --text "Novi tekst"
+.\atlas.cmd note ITEM_ID --clear-tags
+.\atlas.cmd note ITEM_ID --delete
+```
+
+`ITEM_ID` zamijeni stvarnim ID-jem stavke. `--tag` se može ponoviti i zamjenjuje oznake; bez tog argumenta postojeće oznake ostaju. `--clear-tags` ih uklanja. Brisanje se ne kombinuje sa drugim opcijama bilješke.
+
+Bilješke su u privatnom `config/overrides.json`, izuzetom iz Gita. Komanda koristi postojeći inventar i objavljuje bilješke i novi katalog zajedno, uz lock i oporavak. Prethodno pokreni scan ili refresh. Tekst je ograničen na 10.000 znakova, oznake na 20 jedinstvenih vrijednosti po 100 znakova, fajl na 1 MiB.
+
+Refresh čuva bilješke. Ako stavka nestane, bilješka ostaje sačuvana i CLI prijavljuje broj nepovezanih bilješki; ona ne predstavlja instalirani alat. Povratak istog ID-ja ponovo je povezuje. Browser samo prikazuje i pretražuje bilješke; ne uređuje ih niti ih čuva u localStorage. Ne stavljaj tajne u bilješke jer se njihov sadržaj ugrađuje u lokalni HTML.
 
 ## Dodavanje izvora
 
@@ -47,7 +87,7 @@ Uredi `config/sources.local.json`: `workspaceRoot` je apsolutan; relativni izvor
 - `mcpSources`: putanja, profil i format claude-json / mcp-json / codex-toml.
 - `documents`: putanja i naslov dokumenta.
 
-Config argument možeš zadati sa `refresh --config PATH`; relativni PATH se računa od Archify roota, ne cwd-a.
+Config argument možeš zadati sa `refresh --config PATH`; relativni PATH se računa od Archify roota, ne cwd-a. Ako lokalni sources.current.json postoji, scan/refresh ga podrazumijevano koriste; eksplicitni --config uvijek ima prednost. Privatne config fajlove praviš ponovo na novom računaru.
 Podrazumijevani izvori uključuju `.agents`, tri Claude profila i `.codex/config.toml`.
 Brojevi se računaju pri skeniranju. Nevalidan YAML frontmatter daje fallback naziv foldera i upozorenje, ali item ostaje u katalogu.
 
@@ -73,6 +113,7 @@ Browser provjera:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+$env:PYTHONUTF8 = "1"
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\.playwright-browsers"
 .\.venv\Scripts\python.exe -m playwright install chromium
 $env:ATLAS_E2E = "1"
@@ -84,8 +125,57 @@ Screenshoti i performanse su u `output/e2e/`, stvarna verifikacija u `output/ver
 
 ## Obim
 
-Faza 1 pravi katalog. Archify mape projekata, bilješke, server i cloud su odloženi.
-Specifikacija: `docs/specs/2026-10-13-atlas-design.md`.
-Plan: `docs/plans/2026-10-13-atlas-faza1.md`.
+Faza 1 pravi katalog; Faza 2 dodaje lokalne bilješke; Faza 3 lokalne Archify mape i praćenje njihove zastarjelosti. Server, cloud i browser uređivanje nisu uključeni.
 
-Ažurirano: 2026-10-13.
+## Lokalne mape (Faza 3)
+
+Mape koriste zaseban open-source [Archify renderer](https://github.com/tt-a1i/archify), MIT licenca. Za mapiranje treba **Node.js 18+** na PATH-u ili Node iz lokalnog Playwright drivera.
+
+Pinovana verzija je u `config/archify-upstream.json`; lokalni vendor nije u Gitu. Na novom računaru ga pripremi:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -WithMaps
+```
+
+Za kompletne razvojne/browser zavisnosti i lokalni Node iz Playwrighta:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -WithMaps -Development
+```
+
+Nema globalne instalacije skillova, npm instalacije ili API ključa. Potrebna su dva lokalna JSON fajla: analysis sa projektnim ID-jem/rootom, komponentama, vezama, relativnim source putanjama, linijama i SHA-256 hashovima; i native Archify JSON prema shemi iz vendor/archify/archify/schemas/. Demo inputs nastaju tek poslije pripreme demonstracije, ne dolaze iz privatnog data foldera.
+
+U detaljima projekta vidiš naslov mape, relativni link i status: Aktuelna, Zastarjela ili Neprovjerena. Status poredi lokalne SHA-256 hashove relevantnih source fajlova sa sačuvanom analizom. Promjena ili brisanje fajla daje Zastarjela; nepotpuna/nečitljiva evidencija daje Neprovjerena. To nije provjera javnog Git commita.
+
+```powershell
+.\atlas.cmd map PROJECT_ID --analysis data/moja-analiza.json --input data/moja-mapa.json --slug moj-projekat --type workflow
+```
+
+PROJECT_ID je ID projektnog itema iz detalja kataloga. Analiza mora navesti isti ID i stvarnu projektnu lokaciju. Native JSON mora pratiti lokalnu upstream Archify shemu. Podržani tipovi su workflow i architecture. Komanda validira i renderuje u stagingu; tek nakon uspjeha objavljuje HTML, oba JSON izvora, registar i katalog zajedno. Greška čuva stare izlaze.
+
+Upstream je lokalno u vendor/archify, sa verzijom/commitom u data/archify-version.json i MIT licencom. Koristi se postojeći lokalni Node iz Playwright drivera ili Node na PATH-u. Nema globalne instalacije ili update provjere. Upstream može zahtijevati dodatnu sandbox dozvolu da provjeri Windows putanje; nikad ne zaobilaziti njegovu provjeru.
+
+Isporučena mapa atlas-demo je lokalna demonstracija toka Atlasa. creative-forge i session-miner nisu prisutni; njihove stvarne mape nisu isporučene. Viewer kontrole upstream mape koriste engleski fallback; naslovi našeg kataloga i mapa su na BCS-u.
+
+## Struktura projekta
+
+- src/atlas/: CLI, skeneri, bilješke, mape i offline UI.
+- tests/: unit, integration i browser testovi.
+- docs/specs/ i docs/plans/: specifikacije i planovi faza 1–3.
+- config/sources.example.json: primjer izvora za vlastiti računar.
+- setup.ps1 i atlas.cmd: instalacija i svakodnevni rad.
+- tools/: lokalna instalacija renderera i provjere.
+
+## Privatnost i prenos
+
+U Git ne ulaze privatni configi, bilješke, data/, output/, .venv/, browseri, vendor/ ili .tools/. Svaki računar pravi svoj inventar. Bilješke prenesi zasebno ako želiš; identitet stavke zavisi od lokalne putanje.
+
+## Ako nešto ne radi
+
+- Python nije pronađen: koristi -PythonExe sa punom putanjom do instaliranog Pythona.
+- Prazan katalog/upozorenja: podesi stvarne izvore u lokalnom configu.
+- Nema .venv: pokreni setup, bez kopiranja starog okruženja.
+- Mape: provjeri Node i lokalni vendor; ne uklanjaj upstream path-safety provjere.
+- GitHub prijava je potrebna za push/privatni clone, ne za lokalno korištenje.
+
+Za novo skeniranje pokreni atlas.cmd refresh, a za otvaranje atlas.cmd open.

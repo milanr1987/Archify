@@ -5,5 +5,6 @@ if not exist "%~dp0.venv\Scripts\python.exe" (
   exit /b 1
 )
 set "PYTHONPATH=%~dp0src"
+set "PYTHONUTF8=1"
 "%~dp0.venv\Scripts\python.exe" -m atlas %*
 exit /b %errorlevel%

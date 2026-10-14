@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Callable, Iterator
 from atlas.paths import AppPaths
+from atlas.maps import map_output_allowed
 
 class LockBusy(Exception): pass
 class RecoveryError(Exception): pass
@@ -114,12 +115,12 @@ def _validated_journal(paths: AppPaths) -> tuple[str, list[dict]]:
         phase, entries = data["phase"], data["entries"]
         if phase not in ("backup", "replace", "committed", "rolled-back") or not isinstance(entries, list):
             raise ValueError()
-        allowed = {p.resolve() for p in (paths.inventory, paths.report, paths.catalog)}
+        allowed = {p.resolve() for p in (paths.inventory, paths.report, paths.catalog, paths.overrides)}
         seen = set()
         for entry in entries:
             if not isinstance(entry, dict) or set(entry) != {"target", "staged", "backup"}: raise ValueError()
             t = Path(entry["target"])
-            if t.resolve() not in allowed or t.resolve() in seen: raise ValueError()
+            if (t.resolve() not in allowed and not map_output_allowed(paths, t)) or t.resolve() in seen: raise ValueError()
             seen.add(t.resolve())
             for field, suffix in (("staged", ".staged"), ("backup", ".bak")):
                 if field == "backup" and entry[field] is None: continue
