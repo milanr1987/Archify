@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      PYTHONUTF8: "1"
+      ATLAS_E2E: "1"
+      # Spec cilj od 50 ms važi za lokalni računar; dijeljeni CI runner je sporiji.
+      ATLAS_PERF_P95_MS: "200"
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}\.playwright-browsers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+          .\.venv\Scripts\python.exe -m playwright install chromium
+      - name: Unit, integration and browser tests
+        run: .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
