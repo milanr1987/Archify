@@ -184,6 +184,7 @@ Mapa projekta se opisuje u `config/maps/<slug>.json` (privatno, van Gita jer je 
 ```powershell
 $env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py creative-forge
 $env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py --all
+$env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py --stale
 ```
 
 Alat čita izvore projekta, upisuje linije i SHA-256 hashove u `data/map-input/<slug>/analysis.json`, objavljuje mapu i pokreće upstream `finalize`. Kad se projekat promijeni, mapa u katalogu postaje „Zastarjela“; ponovi komandu. Polja opisa i primjer su u `docs/specs/2026-10-14-atlas-faza5-pronalazenje-grupisanje-pokretanje-design.md` i `tests/test_mapspec.py`. Isporučena mapa atlas-demo ostaje lokalna demonstracija toka Atlasa. Viewer kontrole upstream mape koriste engleski fallback; naslovi našeg kataloga i mapa su na BCS-u.
