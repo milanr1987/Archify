@@ -8,7 +8,8 @@ from atlas.cli import main
 from atlas.config import default_config
 
 root = Path(__file__).resolve().parents[1]
-config_path = root / 'config/sources.current.json'
+config_path = root / 'data/demo-input/sources.json'
+config_path.parent.mkdir(parents=True, exist_ok=True)
 if not config_path.exists():
     config = default_config(Path.home(), root.parent)
     config['extraProjects'] = [str(root)]
