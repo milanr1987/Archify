@@ -219,3 +219,68 @@ class StateTests(TempDirTestCase):
         html=render_catalog(inv,inventory_hash(inv))
         self.assertIn('id="f-drift"',html)
         self.assertIn('id="atlas-state"',html)
+
+
+class HashCacheTests(TempDirTestCase):
+    def setUp(self):
+        super().setUp()
+        self.root = self.tmp/'skill'
+        write(self.root/'SKILL.md', 'prvi sadrzaj')
+        write(self.root/'ref/notes.md', 'biljeske')
+
+    def test_unchanged_folder_is_not_read_again(self):
+        from pathlib import Path
+        from atlas.scan.state import HashCache, content_hash
+        cache = HashCache()
+        first = content_hash(self.root, Collector(), cache=cache)
+        with patch.object(Path, 'open', side_effect=AssertionError('fajl ne smije biti čitan')):
+            self.assertEqual(content_hash(self.root, Collector(), cache=cache), first)
+
+    def test_changed_mtime_or_size_recomputes(self):
+        from atlas.scan.state import HashCache, content_hash
+        cache = HashCache()
+        first = content_hash(self.root, Collector(), cache=cache)
+        path = self.root/'SKILL.md'
+        stamp = path.stat().st_mtime_ns
+        path.write_text('drugi sadrzaj', encoding='utf-8')  # ista dužina, drugi sadržaj
+        os.utime(path, ns=(stamp + 2_000_000_000, stamp + 2_000_000_000))
+        second = content_hash(self.root, Collector(), cache=cache)
+        self.assertNotEqual(first, second)
+        self.assertEqual(second, content_hash(self.root, Collector()))
+        write(self.root/'novo.md', 'x')
+        self.assertNotEqual(content_hash(self.root, Collector(), cache=cache), second)
+
+    def test_cache_file_roundtrip_prunes_and_survives_corruption(self):
+        from atlas.scan.state import HashCache, content_hash
+        path = self.tmp/'data/skill-hash-cache.json'
+        cache = HashCache.load(path)
+        value = content_hash(self.root, Collector(), cache=cache)
+        cache.save()
+        again = HashCache.load(path)
+        self.assertEqual(content_hash(self.root, Collector(), cache=again), value)
+        again.save()
+        self.assertEqual(len(json.loads(path.read_text(encoding='utf-8'))['entries']), 1)
+        unused = HashCache.load(path)
+        unused.save()
+        self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['entries'], {})
+        path.write_text('{nije json', encoding='utf-8')
+        self.assertEqual(content_hash(self.root, Collector(), cache=HashCache.load(path)), value)
+
+    def test_unknown_hash_is_not_cached(self):
+        from atlas.scan.state import HashCache, content_hash
+        cache = HashCache()
+        self.assertEqual(content_hash(self.root, Collector(), cache=cache, max_files=1), 'unknown')
+        self.assertEqual(cache.entries, {})
+
+    def test_build_inventory_uses_and_writes_cache(self):
+        from atlas.inventory import build_inventory
+        home = self.tmp/'home'
+        write(home/'.claude/skills/own/SKILL.md', skill_md('own', 'Moj'))
+        cfg = parse_config({'workspaceRoot': str(self.tmp/'ws'), 'skillRoots': [
+            {'path': str(home/'.claude/skills'), 'profile': 'claude', 'label': '.claude'}]})
+        cache_path = self.tmp/'data/skill-hash-cache.json'
+        first = build_inventory(cfg, hash_cache_path=cache_path).inventory
+        self.assertTrue(cache_path.is_file())
+        second = build_inventory(cfg, hash_cache_path=cache_path).inventory
+        self.assertEqual([l.contentHash for i in first.items for l in i.locations],
+                         [l.contentHash for i in second.items for l in i.locations])

@@ -59,7 +59,7 @@ def _cmd_init(paths: AppPaths, config_arg: str | None) -> int:
 def _scan(paths: AppPaths, config_arg: str | None) -> ScanOutcome:
     selected = paths.resolve_config(config_arg)
     print(f"Config: {selected}")
-    return build_inventory(load_config(selected))
+    return build_inventory(load_config(selected), hash_cache_path=paths.data_dir / "skill-hash-cache.json")
 
 
 def _cmd_scan(paths: AppPaths, config_arg: str | None) -> int:

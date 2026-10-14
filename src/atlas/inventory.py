@@ -15,7 +15,7 @@ from atlas.scan.mcp import scan_mcp
 from atlas.scan.plugins import scan_plugins
 from atlas.scan.projects import scan_projects
 from atlas.scan.skills import SkillReader, scan_skills
-from atlas.scan.state import enrich_state
+from atlas.scan.state import HashCache, enrich_state
 
 
 @dataclass
@@ -52,10 +52,11 @@ def finalize(collector: Collector, now: datetime) -> Inventory:
 
 
 def build_inventory(config: Config, *, now: datetime | None = None,
-                    max_items: int = DEFAULT_MAX_ITEMS) -> ScanOutcome:
+                    max_items: int = DEFAULT_MAX_ITEMS, hash_cache_path=None) -> ScanOutcome:
     start = time.perf_counter()
     collector = Collector(max_items)
-    reader = SkillReader(collector)
+    hash_cache = HashCache.load(hash_cache_path) if hash_cache_path else None
+    reader = SkillReader(collector, hash_cache)
     roots = allowed_roots(config)
     projects = scan_projects(config, collector)
     if not collector.limit_hit: scan_skills(config, collector, reader, roots)
@@ -64,6 +65,7 @@ def build_inventory(config: Config, *, now: datetime | None = None,
     if not collector.limit_hit: scan_mcp(config, collector, projects.mcp_files, projects.index)
     if not collector.limit_hit: scan_documents(config, collector)
     git_duration = enrich_state(config, collector)
+    if hash_cache is not None: hash_cache.save()
     inventory = finalize(collector, now or datetime.now().astimezone())
     inventory.profiles=sorted({r.profile for r in (*config.skill_roots,*config.plugin_registries,*config.mcp_sources)})
     validate_inventory(inventory)

@@ -26,8 +26,9 @@ def _scalar(value: object) -> object:
 class SkillReader:
     """Kešira frontmatter po realpathu; lokacija se svaki put evidentira posebno."""
 
-    def __init__(self, collector: Collector) -> None:
+    def __init__(self, collector: Collector, hash_cache=None) -> None:
         self.collector = collector
+        self.hash_cache = hash_cache
         self.cache: dict[str, tuple[str, str]] = {}
         self.outside_warned: set[str] = set()
         self.hashes: dict[str,str] = {}
@@ -94,7 +95,7 @@ def add_skill_root(
             contentHash=reader.hashes.get(real),
         )
         if not location.contentHash:
-            location.contentHash=content_hash(os.path.dirname(skill_md),collector)
+            location.contentHash=content_hash(os.path.dirname(skill_md),collector,cache=reader.hash_cache)
             reader.hashes[real]=location.contentHash
         item = Item(id=make_id("skill", real), kind="skill", name=name,
                     description=description, locations=[location])

@@ -1,5 +1,6 @@
 """Ograničeni read-only hash, Git i mtime; nikada ne izvozi sadržaj."""
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -15,7 +16,60 @@ from atlas.scan.collector import Collector
 from atlas.state import skill_groups
 
 
-def content_hash(root, collector, *, max_files=1024, max_bytes=64*1024*1024, max_file_bytes=16*1024*1024):
+CACHE_MAX_BYTES = 32*1024*1024
+
+
+class HashCache:
+    """Hash po folderu skilla, vezan za listu (putanja, veličina, mtime_ns) svih fajlova.
+
+    Fajlovi se ponovo čitaju čim se ijedan od tih podataka promijeni; čuva se samo ono što je
+    korišteno u zadnjem skeniranju. Privatno, u data/ (van Gita). Neispravan fajl znači prazan keš.
+    """
+
+    def __init__(self, path=None, entries=None):
+        self.path = Path(path) if path else None
+        self.entries = entries or {}
+        self.used = {}
+
+    @classmethod
+    def load(cls, path):
+        path = Path(path)
+        try:
+            if path.stat().st_size > CACHE_MAX_BYTES: raise ValueError('too-large')
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = data['entries'] if data.get('version') == 1 and isinstance(data.get('entries'), dict) else {}
+            entries = {k: v for k, v in entries.items() if isinstance(v, dict) and isinstance(v.get('files'), list)
+                       and isinstance(v.get('hash'), str) and re.fullmatch(r'[0-9a-f]{64}', v['hash'])}
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            entries = {}
+        return cls(path, entries)
+
+    def get(self, key, signature):
+        entry = self.entries.get(key)
+        if entry and entry['files'] == signature:
+            self.used[key] = entry
+            return entry['hash']
+        return None
+
+    def put(self, key, signature, value):
+        self.entries[key] = self.used[key] = {'files': signature, 'hash': value}
+
+    def save(self):
+        if not self.path: return
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_name(self.path.name + '.tmp')
+            tmp.write_text(json.dumps({'version': 1, 'entries': self.used}, separators=(',', ':')), encoding='utf-8')
+            os.replace(tmp, self.path)
+        except OSError:
+            pass  # Keš je samo ubrzanje; sljedeće skeniranje računa iznova.
+
+
+def _is_link(entry):
+    return entry.is_symlink() or (hasattr(entry, 'is_junction') and entry.is_junction())
+
+
+def content_hash(root, collector, *, cache=None, max_files=1024, max_bytes=64*1024*1024, max_file_bytes=16*1024*1024):
     root = Path(root).resolve()
     files = []
     folders = []
@@ -34,20 +88,28 @@ def content_hash(root, collector, *, max_files=1024, max_bytes=64*1024*1024, max
                     entries+=1
                     if entries>4096: raise ValueError('limit')
                     path=Path(entry.path)
-                    if not is_within(str(path),str(root)): raise ValueError('outside-link')
+                    # Realpath samo za linkove: običan unos u stvarnom folderu ne može izaći iz root-a.
+                    if _is_link(entry) and not is_within(str(path),str(root)): raise ValueError('outside-link')
                     if entry.is_dir(): walk(path,depth+1,stack)
                     else:
-                        # Windows DirEntry.stat can report st_ino=0; use stat on the path.
-                        info=path.stat()
+                        info=entry.stat()
                         if not stat.S_ISREG(info.st_mode): raise ValueError('special-file')
                         total+=info.st_size
                         files.append((path.relative_to(root).as_posix(),path,info))
                         if len(files)>max_files or total>max_bytes or info.st_size>max_file_bytes:
                             raise ValueError('limit')
         walk(root,0,frozenset())
+        key=os.path.normcase(str(root))
+        signature=[[rel,info.st_size,info.st_mtime_ns] for rel,_,info in sorted(files,key=lambda f:f[0])]
+        if cache is not None:
+            cached=cache.get(key,signature)
+            if cached: return cached
         digest=hashlib.sha256(b'atlas-skill-v1\0')
-        for rel,path,info in sorted(files):
+        for rel,path,listed in sorted(files,key=lambda f:f[0]):
             if not is_within(str(path),str(root)): raise ValueError('changed-link')
+            # Windows DirEntry.stat can report st_ino=0; use stat on the path for the inode check.
+            info=path.stat()
+            if (info.st_size,info.st_mtime_ns)!=(listed.st_size,listed.st_mtime_ns): raise ValueError('changed-file')
             with path.open('rb') as handle:
                 before=os.fstat(handle.fileno())
                 if not stat.S_ISREG(before.st_mode): raise ValueError('special-file')
@@ -59,7 +121,9 @@ def content_hash(root, collector, *, max_files=1024, max_bytes=64*1024*1024, max
             digest.update(len(encoded).to_bytes(8,'big'));digest.update(encoded)
             digest.update(len(data).to_bytes(8,'big'));digest.update(data)
         if any(folder.stat().st_mtime_ns!=mtime for folder,mtime in folders):raise ValueError('changed-folder')
-        return digest.hexdigest()
+        value=digest.hexdigest()
+        if cache is not None: cache.put(key,signature,value)
+        return value
     except (OSError,ValueError,RuntimeError):
         collector.warn('warn','skill-hash-unknown',root,'hash nije dostupan: limit, nečitljiv/promijenjen fajl ili nesiguran link')
         return 'unknown'
