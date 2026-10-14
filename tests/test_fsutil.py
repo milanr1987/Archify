@@ -3,7 +3,7 @@ import unittest
 
 from helpers import TempDirTestCase, make_dir_link, write
 
-from atlas.frontmatter import FrontmatterError, parse_frontmatter
+from atlas.frontmatter import FrontmatterError, parse_frontmatter, parse_frontmatter_lenient
 from atlas.fsutil import FileTooLarge, FsOps, find_skill_files, is_within, link_info, read_text_limited
 from atlas.identity import norm_path
 from atlas.textutil import clean_text
@@ -131,6 +131,25 @@ class FrontmatterTests(unittest.TestCase):
             with self.assertRaises(FrontmatterError) as ctx:
                 parse_frontmatter(text)
             self.assertNotIn("TAJNO", str(ctx.exception))
+
+    def test_lenient_reads_plain_lines_with_inner_colons(self):
+        text = '---\nname: ab-ideja\ndescription: Radi X. Argumenti opciono: proizvod ("/ab-ideja payment").\n---\nbody'
+        with self.assertRaises(FrontmatterError):
+            parse_frontmatter(text)
+        data = parse_frontmatter_lenient(text)
+        self.assertEqual(data["name"], "ab-ideja")
+        self.assertEqual(data["description"], 'Radi X. Argumenti opciono: proizvod ("/ab-ideja payment").')
+
+    def test_lenient_rejects_flow_and_nested_values(self):
+        for text in ("---\nname: [TAJNO\n---\n", "---\n  name: uvuceno\n---\n", "bez frontmattera",
+                     "---\nname: |\n  blok\n---\n"):
+            with self.assertRaises(FrontmatterError) as ctx:
+                parse_frontmatter_lenient(text)
+            self.assertNotIn("TAJNO", str(ctx.exception))
+
+    def test_lenient_strips_matching_quotes(self):
+        data = parse_frontmatter_lenient("---\nname: 'x'\ndescription: \"y: z\"\n---\n")
+        self.assertEqual((data["name"], data["description"]), ("x", "y: z"))
 
 
 class CleanTextTests(unittest.TestCase):

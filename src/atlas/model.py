@@ -7,7 +7,7 @@ import os
 from dataclasses import asdict, dataclass, field
 
 SCHEMA_VERSION = 1
-KINDS = ("project", "skill", "plugin", "mcp", "document")
+KINDS = ("project", "skill", "plugin", "mcp", "document", "command", "agent", "hook")
 EVIDENCE = ("observed", "documented")
 RELATION_TYPES = ("contains", "documented-by", "configured-for")
 SEVERITIES = ("info", "warn")
@@ -17,8 +17,11 @@ METADATA_KEYS: dict[str, frozenset[str]] = {
     "plugin": frozenset({"marketplace", "version", "scope", "projectPath", "installedAt", "lastUpdated"}),
     "mcp": frozenset({"transport", "executableName", "envNames", "scope", "projectPath", "sourceFormat"}),
     "document": frozenset({"referenceStatus"}),
+    "command": frozenset(),
+    "agent": frozenset(),
+    "hook": frozenset({"event", "matcher", "hookCount", "hookTypes"}),
 }
-LIST_METADATA = frozenset({"scriptNames", "markers", "envNames"})
+LIST_METADATA = frozenset({"scriptNames", "markers", "envNames", "hookTypes"})
 
 
 class InventoryError(ValueError):

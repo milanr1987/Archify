@@ -60,7 +60,7 @@ class ValidationTests(unittest.TestCase):
 
     def test_bad_kind_rejected(self):
         with self.assertRaises(InventoryError):
-            validate_inventory(inventory([item("a", kind="agent")]))
+            validate_inventory(inventory([item("a", kind="widget")]))
 
     def test_item_without_location_rejected(self):
         bad = item("a")

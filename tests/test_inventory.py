@@ -20,7 +20,7 @@ class InventoryTests(TempDirTestCase):
         inv = build_inventory(self.config, now=NOW).inventory
         validate_inventory(inv)
         self.assertEqual(Counter(i.kind for i in inv.items),
-                         Counter({"skill": 7, "mcp": 6, "project": 3, "plugin": 2, "document": 2}))
+                         Counter({"skill": 7, "mcp": 6, "project": 3, "plugin": 2, "document": 2, "hook": 1}))
 
     def test_duplicate_group_for_same_name(self):
         inv = build_inventory(self.config, now=NOW).inventory

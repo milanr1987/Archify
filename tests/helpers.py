@@ -99,6 +99,9 @@ def make_fixture(tmp: Path) -> dict:
                        "headers": {"Authorization": "Bearer " + SENTINELS[3]}},
         },
         "projects": {(ws / "proj-node").as_posix(): {"mcpServers": {"local-db": {"command": "uvx"}}}},
+        "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [
+            {"type": "command", "command": "guard " + SENTINELS[0], "env": {"T": SENTINELS[2]}},
+            {"type": "http", "url": "https://h/" + SENTINELS[1], "headers": {"A": SENTINELS[3]}}]}]},
     }))
     write(home / ".codex/config.toml", CODEX_FIXTURE)
     return {

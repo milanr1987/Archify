@@ -1,15 +1,31 @@
 """Install the pinned MIT Archify package locally, without global settings."""
 from __future__ import annotations
+import hashlib
 import json
+import re
 import shutil
 import tempfile
 import urllib.request
 import zipfile
 from pathlib import Path
 
+MAX_ARCHIVE = 200 * 1024 * 1024
+MAX_UNPACKED = 500 * 1024 * 1024
 
-def install(root: Path) -> None:
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def install(root: Path, fetch=urllib.request.urlretrieve) -> None:
     spec = json.loads((root/'config/archify-upstream.json').read_text(encoding='utf-8'))
+    expected = spec.get('archiveSha256')
+    if not isinstance(expected, str) or not re.fullmatch(r'[a-f0-9]{64}', expected):
+        raise ValueError('config/archify-upstream.json nema ispravan archiveSha256')
     target = root/'vendor/archify'
     if (target/'archify/bin/archify.mjs').exists():
         print('Lokalni Archify vec postoji; ne prepisujem ga.')
@@ -19,10 +35,16 @@ def install(root: Path) -> None:
     with tempfile.TemporaryDirectory(prefix='archify-install-',dir=target.parent) as tmp:
         stage = Path(tmp)
         archive = stage/'source.zip'
-        urllib.request.urlretrieve(url,archive)
+        fetch(url,archive)
+        if archive.stat().st_size > MAX_ARCHIVE:
+            raise ValueError('Upstream arhiva je prevelika')
+        if _sha256(archive) != expected:
+            raise ValueError('SHA-256 upstream arhive ne odgovara pinovanoj vrijednosti; nista nije instalirano')
         unpacked = stage/'unpacked'
         unpacked.mkdir()
         with zipfile.ZipFile(archive) as bundle:
+            if sum(entry.file_size for entry in bundle.infolist()) > MAX_UNPACKED:
+                raise ValueError('Raspakovana upstream arhiva bi bila prevelika')
             prefix = bundle.namelist()[0].split('/')[0]+'/'
             for entry in bundle.infolist():
                 relative = Path(entry.filename.removeprefix(prefix))

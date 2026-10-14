@@ -1,13 +1,15 @@
 # Archify
 
-**AI Workspace Atlas** je lokalni katalog projekata, skillova, pluginova, MCP konfiguracija i dokumenata, sa privatnim bilješkama i projektnim mapama.
+**AI Workspace Atlas** je lokalni katalog projekata, skillova, pluginova, MCP konfiguracija, slash komandi, agenata, hookova i dokumenata, sa privatnim bilješkama i projektnim mapama.
 Otvori `output/index.html` dvoklikom: pretraga, filteri, detalji i kopiranje putanja rade bez servera i interneta.
 
 Repo sadrži kod, testove, setup i dokumentaciju. Svaki računar pravi svoj inventar; privatni podaci i lokalno okruženje se ne preuzimaju iz Gita. Za korištenje nisu potrebni pretplata, hosting ili API ključ. Internet je potreban za početno preuzimanje besplatnih zavisnosti.
 
 ## Svakodnevna upotreba
 
-Iz foldera Archify u PowerShellu:
+Najlakše: **dvoklik na prečicu „AI Atlas“ na Desktopu**. Ona osvježi katalog i otvori ga u browseru, bez terminala; ako nešto pođe po zlu, greška se pokaže u prozoru. Setup pravi prečicu sam; ručno: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\create_shortcut.ps1`.
+
+Iz terminala, u folderu Archify:
 
 ```powershell
 .\atlas.cmd refresh
@@ -18,6 +20,7 @@ Iz foldera Archify u PowerShellu:
 `scan` pravi samo JSON i izvještaj; `build` obnavlja HTML iz postojećeg JSON-a.
 `open` prvo oporavlja eventualno prekinutu objavu, zatim otvara katalog.
 Exit kod 0 znači uspjeh, 2 djelimičan pregled sa upozorenjima, 1 grešku.
+`scan` i `refresh` na početku ispisuju `Config: ...`, putanju configa koji je stvarno korišten.
 
 Na vrhu kataloga izaberi tip, profil ili pretraži ime/opis/putanju.
 Pronađeni skill može imati više lokacija i profila; detalji pokazuju samostalno ili plugin porijeklo po lokaciji.
@@ -80,16 +83,25 @@ Refresh čuva bilješke. Ako stavka nestane, bilješka ostaje sačuvana i CLI pr
 
 Uredi `config/sources.local.json`: `workspaceRoot` je apsolutan; relativni izvori se računaju od njega.
 
-- `projectRoots`: roditeljski folderi čije direktne podfoldere treba pregledati.
-- `extraProjects`: dodatni projekti bez manifesta.
+- `projectRoots`: folderi u kojima se traže projekti.
+- `projectDepth`: koliko nivoa ispod njih (1–5; bez polja 1). Projekat je folder sa manifestom (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `.sln`, `.csproj`) ili sa `.git`, `CLAUDE.md`, `AGENTS.md`. U manifest projekat se ne ulazi dublje; u git/CLAUDE projekat se ulazi i nalaze se projekti u njemu.
+- `extraProjects`: dodatni projekti bez ijednog markera.
 - `skillRoots`: putanja, profil, label.
 - `pluginRegistries`: installed_plugins.json putanja i profil.
 - `mcpSources`: putanja, profil i format claude-json / mcp-json / codex-toml.
 - `documents`: putanja i naslov dokumenta.
 
-Config argument možeš zadati sa `refresh --config PATH`; relativni PATH se računa od Archify roota, ne cwd-a. Ako lokalni sources.current.json postoji, scan/refresh ga podrazumijevano koriste; eksplicitni --config uvijek ima prednost. Privatne config fajlove praviš ponovo na novom računaru.
-Podrazumijevani izvori uključuju `.agents`, tri Claude profila i `.codex/config.toml`.
-Brojevi se računaju pri skeniranju. Nevalidan YAML frontmatter daje fallback naziv foldera i upozorenje, ali item ostaje u katalogu.
+Config argument možeš zadati sa `refresh --config PATH`; relativni PATH se računa od Archify roota, ne cwd-a. Bez `--config` koristi se `config/sources.local.json`. Privatne config fajlove praviš ponovo na novom računaru.
+Podrazumijevani izvori uključuju `.agents`, tri Claude profila i `.codex/config.toml`. `init` sam upisuje postojeće uobičajene foldere sa projektima (Desktop, Documents, OneDrive, WebstormProjects, source\repos i slične) sa `projectDepth: 3`, pa na novom računaru projekti dolaze bez ručnog upisivanja. Ako je nešto suvišno (npr. privremeni folder), dodaj njegovo ime u `excludeNames`.
+
+U katalogu je „Grupiši isto ime“ uključeno: isti plugin, skill ili hook u više profila je jedan red sa svim profilima i oznakom ×N, a detalji pokazuju sve instance. Isključi ga za listu svake instance posebno.
+Brojevi se računaju pri skeniranju. Ako YAML frontmatter nije strogo ispravan (npr. `Argumenti opciono: x` bez navodnika u `description`), Atlas ga čita blaže, kao Claude Code, i daje samo `info` upozorenje `lenient-frontmatter`. Tek kad ni to ne uspije, item dobija naziv foldera, prazan opis i `warn` upozorenje.
+
+## Komande, agenti i hookovi (Faza 4)
+
+Za svaki skill root koji se zove `skills` Atlas čita susjedne `commands/` i `agents/` (npr. `~\.claude\commands`), a iz pluginova `commands/`, `agents/` i `hooks/hooks.json`. Hookovi se čitaju iz `hooks` ključa u `claude-json` izvorima (`settings.json`). Novi config nije potreban.
+
+Komanda iz podfoldera dobija namespace (`git/commit.md` → `git:commit`). Hook se prikazuje kao `Događaj · matcher`, sa brojem i tipom hookova. Sadržaj hooka (`command`, `prompt`, `url`, `headers`, `env`) se nikad ne čita u izlaz. Spec: `docs/specs/2026-10-14-atlas-faza4-komande-agenti-hookovi-design.md`.
 
 ## Tačnost i privatnost
 
@@ -125,13 +137,13 @@ Screenshoti i performanse su u `output/e2e/`, stvarna verifikacija u `output/ver
 
 ## Obim
 
-Faza 1 pravi katalog; Faza 2 dodaje lokalne bilješke; Faza 3 lokalne Archify mape i praćenje njihove zastarjelosti. Server, cloud i browser uređivanje nisu uključeni.
+Faza 1 pravi katalog; Faza 2 dodaje lokalne bilješke; Faza 3 lokalne Archify mape i praćenje njihove zastarjelosti; Faza 4 slash komande, agente i hookove. Server, cloud i browser uređivanje nisu uključeni.
 
 ## Lokalne mape (Faza 3)
 
 Mape koriste zaseban open-source [Archify renderer](https://github.com/tt-a1i/archify), MIT licenca. Za mapiranje treba **Node.js 18+** na PATH-u ili Node iz lokalnog Playwright drivera.
 
-Pinovana verzija je u `config/archify-upstream.json`; lokalni vendor nije u Gitu. Na novom računaru ga pripremi:
+Pinovana verzija je u `config/archify-upstream.json`, zajedno sa SHA-256 hashom ZIP arhive; instaler odbija arhivu čiji hash ne odgovara i tada ništa ne instalira. Lokalni vendor nije u Gitu. Na novom računaru ga pripremi:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -WithMaps
@@ -155,13 +167,21 @@ PROJECT_ID je ID projektnog itema iz detalja kataloga. Analiza mora navesti isti
 
 Upstream je lokalno u vendor/archify, sa verzijom/commitom u data/archify-version.json i MIT licencom. Koristi se postojeći lokalni Node iz Playwright drivera ili Node na PATH-u. Nema globalne instalacije ili update provjere. Upstream može zahtijevati dodatnu sandbox dozvolu da provjeri Windows putanje; nikad ne zaobilaziti njegovu provjeru.
 
-Isporučena mapa atlas-demo je lokalna demonstracija toka Atlasa. creative-forge i session-miner nisu prisutni; njihove stvarne mape nisu isporučene. Viewer kontrole upstream mape koriste engleski fallback; naslovi našeg kataloga i mapa su na BCS-u.
+Mapa projekta se opisuje u `config/maps/<slug>.json` (privatno, van Gita jer je repo javan): projekt iz kataloga, naslov, trake (lanes) i komponente sa fajlom i tekstom koji označava liniju dokaza. Pravi se i obnavlja iz Archify foldera, poslije `refresh`:
+
+```powershell
+$env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py creative-forge
+$env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py --all
+```
+
+Alat čita izvore projekta, upisuje linije i SHA-256 hashove u `data/map-input/<slug>/analysis.json`, objavljuje mapu i pokreće upstream `finalize`. Kad se projekat promijeni, mapa u katalogu postaje „Zastarjela“; ponovi komandu. Polja opisa i primjer su u `docs/specs/2026-10-14-atlas-faza5-pronalazenje-grupisanje-pokretanje-design.md` i `tests/test_mapspec.py`. Isporučena mapa atlas-demo ostaje lokalna demonstracija toka Atlasa. Viewer kontrole upstream mape koriste engleski fallback; naslovi našeg kataloga i mapa su na BCS-u.
 
 ## Struktura projekta
 
 - src/atlas/: CLI, skeneri, bilješke, mape i offline UI.
 - tests/: unit, integration i browser testovi.
-- docs/specs/ i docs/plans/: specifikacije i planovi faza 1–3.
+- docs/specs/ i docs/plans/: specifikacije i planovi faza 1–5.
+- .github/workflows/ci.yml: testovi na svaki push (Windows, uključujući browser testove).
 - config/sources.example.json: primjer izvora za vlastiti računar.
 - setup.ps1 i atlas.cmd: instalacija i svakodnevni rad.
 - tools/: lokalna instalacija renderera i provjere.

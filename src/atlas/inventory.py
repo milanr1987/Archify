@@ -10,6 +10,7 @@ from atlas.config import Config, allowed_roots
 from atlas.model import SCHEMA_VERSION, Inventory, validate_inventory
 from atlas.scan.collector import DEFAULT_MAX_ITEMS, Collector, SourceStatus
 from atlas.scan.documents import scan_documents
+from atlas.scan.extensions import scan_extensions
 from atlas.scan.mcp import scan_mcp
 from atlas.scan.plugins import scan_plugins
 from atlas.scan.projects import scan_projects
@@ -56,6 +57,7 @@ def build_inventory(config: Config, *, now: datetime | None = None,
     roots = allowed_roots(config)
     projects = scan_projects(config, collector)
     if not collector.limit_hit: scan_skills(config, collector, reader, roots)
+    if not collector.limit_hit: scan_extensions(config, collector)
     if not collector.limit_hit: scan_plugins(config, collector, reader, roots)
     if not collector.limit_hit: scan_mcp(config, collector, projects.mcp_files, projects.index)
     if not collector.limit_hit: scan_documents(config, collector)

@@ -17,6 +17,7 @@ from atlas.textutil import clean_text
 MARKERS = (("package.json", "node"), ("pyproject.toml", "python"), ("Cargo.toml", "rust"), ("go.mod", "go"))
 DOTNET_SUFFIXES = (".sln", ".csproj")
 PROJECT_DOCS = ("README.md", "AGENTS.md", "CLAUDE.md")
+REPO_DOCS = ("CLAUDE.md", "AGENTS.md")
 
 
 @dataclass
@@ -84,6 +85,7 @@ def _add_project(collector: Collector, result: ProjectScan, folder: str) -> None
     markers = find_markers(folder)
     name, description, scripts = _manifest_info(collector, folder, markers)
     metadata: dict[str, str | list[str]] = {"projectType": project_type(markers)}
+    markers = markers or repo_markers(folder, False)
     if markers:
         metadata["markers"] = markers
     if scripts:
@@ -105,6 +107,43 @@ def _add_project(collector: Collector, result: ProjectScan, folder: str) -> None
         result.mcp_files.append((folder, mcp_path))
 
 
+def repo_markers(folder: str, inside_project: bool) -> list[str]:
+    """Slabi markeri: .git uvijek; CLAUDE.md/AGENTS.md samo van drugog projekta (inače su to podfolderi dokumentacije)."""
+    names = [".git"] if os.path.exists(os.path.join(folder, ".git")) else []
+    if not inside_project:
+        names += [n for n in REPO_DOCS if os.path.isfile(os.path.join(folder, n))]
+    return names
+
+
+def _discover(root: str, depth: int, exclude: frozenset[str], found: list[str]) -> None:
+    """Manifest projekat je list; projekat sa samo .git/CLAUDE.md može sadržavati druge projekte."""
+
+    def walk(directory: str, level: int, inside: bool, stack: frozenset[str]) -> None:
+        try:
+            names = sorted(os.listdir(directory))
+        except OSError:
+            return
+        for name in names:
+            if name in exclude or name.startswith("."):
+                continue
+            folder = os.path.join(directory, name)
+            if not os.path.isdir(folder):
+                continue
+            real = norm_path(folder)
+            if real in stack:
+                continue
+            if find_markers(folder):
+                found.append(folder)
+                continue
+            weak = repo_markers(folder, inside)
+            if weak:
+                found.append(folder)
+            if level + 1 < depth:
+                walk(folder, level + 1, inside or bool(weak), stack | {real})
+
+    walk(root, 0, False, frozenset({norm_path(root)}))
+
+
 def scan_projects(config: Config, collector: Collector) -> ProjectScan:
     result = ProjectScan()
     candidates: list[str] = []
@@ -114,18 +153,13 @@ def scan_projects(config: Config, collector: Collector) -> ProjectScan:
             collector.warn("warn", "source-missing", root, "folder sa projektima ne postoji")
             continue
         try:
-            names = sorted(os.listdir(root))
+            os.listdir(root)
         except OSError as exc:
             collector.source("project-root", root, "error")
             collector.warn("warn", "unreadable-dir", root, f"folder nije čitljiv ({type(exc).__name__})")
             continue
         collector.source("project-root", root, "read")
-        for name in names:
-            if name in config.exclude_names or name.startswith("."):
-                continue
-            folder = os.path.join(root, name)
-            if os.path.isdir(folder) and find_markers(folder):
-                candidates.append(folder)
+        _discover(root, config.project_depth, config.exclude_names, candidates)
     for extra in config.extra_projects:
         if os.path.isdir(extra):
             candidates.append(extra)

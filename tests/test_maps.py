@@ -69,12 +69,12 @@ class MapTests(TempDirTestCase):
         self.assertTrue(recover_if_needed(paths))
         self.assertEqual([file.read_text() for file in files],['OLD']*5)
 
-    def test_current_machine_config_precedence(self):
+    def test_legacy_current_config_is_ignored(self):
         paths = AppPaths(self.tmp)
         write(paths.default_config,'{')
         write(paths.config_dir/'sources.current.json',json.dumps({'workspaceRoot':str(self.tmp)}))
-        self.assertEqual(main(['scan'],app_root=self.tmp),0)
-        self.assertEqual(main(['scan','--config',str(paths.default_config)],app_root=self.tmp),1)
+        self.assertEqual(main(['scan'],app_root=self.tmp),1)
+        self.assertEqual(main(['scan','--config','config/sources.current.json'],app_root=self.tmp),0)
 
     def test_registry_rejects_unsafe_links(self):
         path = self.tmp / 'registry.json'

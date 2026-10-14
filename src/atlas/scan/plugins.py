@@ -10,6 +10,7 @@ from atlas.identity import make_id, norm_path
 from atlas.model import Item, Location
 from atlas.scan.collector import Collector
 from atlas.scan.common import load_json_source
+from atlas.scan.extensions import add_hooks, add_markdown_root, read_hooks_quietly
 from atlas.scan.skills import SkillReader, add_skill_root
 from atlas.textutil import clean_text
 
@@ -82,12 +83,26 @@ def _add_plugin(
         return
     if plugin_id in collector.items:
         collector.items[plugin_id].description = _plugin_description(install, collector)
+    label, origin = f"plugin {key}", f"plugin:{plugin_id}"
+    contained: list[str] = []
     skills_dir = os.path.join(install, "skills")
-    if not os.path.isdir(skills_dir):
-        return
-    for skill_id in add_skill_root(collector, reader, skills_dir, reg.profile, f"plugin {key}",
-                                   f"plugin:{plugin_id}", config.exclude_names, roots):
-        collector.relate(plugin_id, skill_id, "contains")
+    if os.path.isdir(skills_dir):
+        contained += add_skill_root(collector, reader, skills_dir, reg.profile, label, origin,
+                                    config.exclude_names, roots)
+    for folder, kind in (("commands", "command"), ("agents", "agent")):
+        path = os.path.join(install, folder)
+        if os.path.isdir(path):
+            contained += add_markdown_root(collector, path, kind, reg.profile, label, origin, config.exclude_names)
+    hooks_file = os.path.join(install, "hooks", "hooks.json")
+    if os.path.isfile(hooks_file):
+        hooks = read_hooks_quietly(hooks_file)
+        if hooks is None:
+            collector.warn("warn", "bad-format", hooks_file, "hooks.json nije čitljiv ili nema objekat hooks")
+        else:
+            contained += add_hooks(collector, hooks, source_path=hooks_file, profile=reg.profile,
+                                   label=label, origin=origin)
+    for item_id in contained:
+        collector.relate(plugin_id, item_id, "contains")
 
 
 def scan_plugins(config: Config, collector: Collector, reader: SkillReader, roots: list[str]) -> None:

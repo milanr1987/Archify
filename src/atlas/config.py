@@ -9,7 +9,7 @@ from pathlib import Path
 
 MCP_FORMATS = frozenset({"claude-json", "mcp-json", "codex-toml"})
 TOP_KEYS = frozenset({
-    "workspaceRoot", "projectRoots", "extraProjects", "excludeNames",
+    "workspaceRoot", "projectRoots", "projectDepth", "extraProjects", "excludeNames",
     "skillRoots", "pluginRegistries", "mcpSources", "documents",
 })
 PROFILE_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
@@ -17,6 +17,12 @@ DEFAULT_EXCLUDES = [
     "Archify", "node_modules", ".git", ".venv", "venv", "dist", "build",
     "output", "graphify-out", "__pycache__",
 ]
+
+
+MAX_PROJECT_DEPTH = 5
+# Uobičajeni folderi sa projektima; init uzima samo one koji postoje na računaru.
+PROJECT_FOLDERS = ("Desktop", "Documents", "OneDrive", "WebstormProjects", "PycharmProjects",
+                   "IdeaProjects", "source/repos", "Projects", "code", "dev", "repos", "GitHub")
 
 
 class ConfigError(Exception):
@@ -53,6 +59,7 @@ class DocumentRef:
 class Config:
     workspace_root: str
     project_roots: tuple[str, ...]
+    project_depth: int
     extra_projects: tuple[str, ...]
     exclude_names: frozenset[str]
     skill_roots: tuple[SkillRoot, ...]
@@ -98,6 +105,9 @@ def parse_config(data: object) -> Config:
             out.append(entry)
         return out
 
+    depth = data.get("projectDepth", 1)
+    if type(depth) is not int or not 1 <= depth <= MAX_PROJECT_DEPTH:
+        raise ConfigError(f"projectDepth mora biti cijeli broj od 1 do {MAX_PROJECT_DEPTH}")
     skill_roots = tuple(
         SkillRoot(resolve(e["path"]), e["profile"], e["label"])
         for e in obj_list("skillRoots", ("path", "profile", "label"))
@@ -123,6 +133,7 @@ def parse_config(data: object) -> Config:
     return Config(
         workspace_root=workspace,
         project_roots=tuple(resolve(p) for p in str_list("projectRoots")),
+        project_depth=depth,
         extra_projects=tuple(resolve(p) for p in str_list("extraProjects")),
         exclude_names=frozenset(str_list("excludeNames")),
         skill_roots=skill_roots,
@@ -146,14 +157,32 @@ def load_config(path: Path) -> Config:
     return parse_config(data)
 
 
+def _within(child: Path, parent: Path) -> bool:
+    try:
+        a, b = os.path.normcase(os.path.realpath(child)), os.path.normcase(os.path.realpath(parent))
+        return os.path.commonpath([a, b]) == b
+    except ValueError:
+        return False
+
+
 def default_config(home: Path, workspace: Path) -> dict:
     def at(*parts: str) -> str:
         return str(Path(home, *parts))
 
+    roots: list[str] = []
+    seen: set[str] = set()
+    for folder in PROJECT_FOLDERS:
+        path = Path(home, folder)
+        key = os.path.normcase(os.path.realpath(path))
+        if path.is_dir() and key not in seen:
+            seen.add(key)
+            roots.append(str(path))
+    inside = any(_within(workspace, Path(root)) for root in roots)
     return {
         "workspaceRoot": str(workspace),
-        "projectRoots": ["."],
-        "extraProjects": ["skill-evals"],
+        "projectRoots": roots if inside else [".", *roots],
+        "projectDepth": 3,
+        "extraProjects": ["skill-evals"] if Path(workspace, "skill-evals").is_dir() else [],
         "excludeNames": list(DEFAULT_EXCLUDES),
         "skillRoots": [
             {"path": at(".agents", "skills"), "profile": "agents", "label": ".agents"},

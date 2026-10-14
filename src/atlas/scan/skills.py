@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 
 from atlas.config import Config
-from atlas.frontmatter import FrontmatterError, parse_frontmatter
+from atlas.frontmatter import FrontmatterError, parse_frontmatter, parse_frontmatter_lenient
 from atlas.fsutil import FileTooLarge, find_skill_files, is_within, link_info, read_text_limited
 from atlas.identity import make_id, norm_path
 from atlas.model import Item, Location
@@ -37,7 +37,15 @@ class SkillReader:
         folder = os.path.basename(os.path.dirname(skill_md))
         name, description = folder, ""
         try:
-            data = parse_frontmatter(read_text_limited(skill_md))
+            text = read_text_limited(skill_md)
+            try:
+                data = parse_frontmatter(text)
+            except FrontmatterError as exc:
+                if str(exc) != "neispravan YAML":
+                    raise
+                data = parse_frontmatter_lenient(text)
+                self.collector.warn("info", "lenient-frontmatter", skill_md,
+                                    "YAML nije strogo ispravan; name/description pročitani blaže, kao u Claude Code")
             if any(key in data and not isinstance(data[key], str) for key in ("name", "description")):
                 raise FrontmatterError("name i description moraju biti stringovi")
             name = clean_text(data.get("name"), 100) or folder

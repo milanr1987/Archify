@@ -166,7 +166,61 @@ class CatalogBrowserTests(unittest.TestCase):
         page.check("input[name='origin'][value='plugin']")
         self.assertIn("cross-skill", self.names(page))
         page.click("#clear-filters")
-        self.assertEqual(page.locator("#count").text_content(), "9 stavki")
+        self.assertEqual(page.locator("#count").text_content(), "8 stavki")
+
+    def test_same_name_items_are_grouped_into_one_row(self):
+        page = self.open_page(self.small)
+        page.fill("#search", "dupe")
+        self.assertEqual(self.names(page), ["dupe"])
+        badges = page.locator("#list .row .badge").all_text_contents()
+        self.assertIn("×2", badges)
+        self.assertTrue({"claude", "max"} <= set(badges))
+        page.locator("#list li.row").first.click()
+        page.wait_for_selector("#detail-title")
+        instances = page.locator(".instances li")
+        self.assertEqual(instances.count(), 2)
+        self.assertIn("Sve instance (2)", page.locator("#detail-body").text_content())
+        page.uncheck("#f-group")
+        self.assertEqual(self.names(page), ["dupe", "dupe"])
+        page.click("#clear-filters")
+        self.assertFalse(page.is_checked("#f-group"))
+        page.check("#f-group")
+        page.fill("#search", "")
+        self.assertEqual(page.locator("#count").text_content(), "8 stavki")
+
+    def test_commands_agents_hooks_render_and_filter_by_origin(self):
+        plugin = Item(make_id("plugin", "tk"), "plugin", "toolkit", "", [Location("C:\\p\\tk", "max")],
+                      "observed", {"scope": "user"}, None)
+        items = [plugin,
+            Item(make_id("command", "deploy"), "command", "deploy", "Deploy app",
+                 [Location("C:\\p\\tk\\commands\\deploy.md", "max", origin=f"plugin:{plugin.id}")], "observed", {}, None),
+            Item(make_id("command", "review"), "command", "review", "Pregled",
+                 [Location("C:\\h\\.claude\\commands\\review.md", "claude", origin="standalone")], "observed", {}, None),
+            Item(make_id("agent", "planner"), "agent", "planner", "Planira",
+                 [Location("C:\\h\\.claude\\agents\\planner.md", "claude", origin="standalone")], "observed", {}, None),
+            Item(make_id("hook", "pre"), "hook", "PreToolUse · Bash", "",
+                 [Location("C:\\h\\.claude\\settings.json", "claude", origin="standalone")], "observed",
+                 {"event": "PreToolUse", "matcher": "Bash", "hookCount": "2", "hookTypes": ["command"]}, None)]
+        items.sort(key=lambda it: (it.kind, it.name.lower(), it.id))
+        inv = Inventory(SCHEMA_VERSION, "2026-10-14T12:00:00+02:00", items, [], [], False)
+        validate_inventory(inv)
+        path = Path(self._tmp.name) / "prosirenja.html"
+        path.write_text(render_catalog(inv, inventory_hash(inv)), encoding="utf-8")
+        page = self.open_page(path)
+        self.assertEqual(page.locator("#counters .counter").count(), 8)
+        page.check("#f-kind input[value='command']")
+        self.assertEqual(sorted(self.names(page)), ["deploy", "review"])
+        page.check("input[name='origin'][value='plugin']")
+        self.assertEqual(self.names(page), ["deploy"])
+        page.click("#clear-filters")
+        page.fill("#search", "bash")
+        page.locator("#list li.row").first.click()
+        page.wait_for_selector("#detail-title")
+        self.assertEqual(page.locator("#detail-title").text_content(), "PreToolUse · Bash")
+        detail = page.locator("#detail-body").text_content()
+        self.assertIn("Broj hookova", detail)
+        self.assertIn("ne provjerava da li se izvršava", detail)
+        self.assertEqual([u for u in self.requests if u.startswith("http")], [])
 
     def test_keyboard_flow_detail_and_escape(self):
         page = self.open_page(self.small)
@@ -234,7 +288,8 @@ class CatalogBrowserTests(unittest.TestCase):
             "items": self.perf_count, "queries": len(times), "median_ms": round(median, 2),
             "p95_ms": round(p95, 2), "browser": f"chromium {self.browser.version}",
         }, indent=2), encoding="utf-8")
-        self.assertLess(p95, 50)
+        # Spec cilj je p95 < 50 ms na lokalnom računaru; CI runner je sporiji pa postavlja svoju granicu.
+        self.assertLess(p95, float(os.environ.get("ATLAS_PERF_P95_MS", "50")))
 
     def test_5000_items_stay_usable(self):
         page = self.open_page(self.big)
