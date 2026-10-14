@@ -77,12 +77,18 @@
     it._profiles = Array.from(profiles).sort();
     if (it.duplicate_group) (groups[it.duplicate_group] = groups[it.duplicate_group] || []).push(it.id);
   });
+  Object.keys(groups).forEach(function (key) {
+    var union = new Set();
+    groups[key].forEach(function (id) { byId[id]._profiles.forEach(function (p) { union.add(p); }); });
+    var sorted = Array.from(union).sort();
+    groups[key].forEach(function (id) { byId[id]._groupProfiles = sorted; });
+  });
   data.relations.forEach(function (r) {
     (related[r.source] = related[r.source] || []).push({ id: r.target, key: r.type + ":out" });
     (related[r.target] = related[r.target] || []).push({ id: r.source, key: r.type + ":in" });
   });
 
-  var state = { q: "", kinds: new Set(), profiles: new Set(), origin: "all", dup: false, link: false, selected: null, limit: PAGE };
+  var state = { q: "", kinds: new Set(), profiles: new Set(), origin: "all", dup: false, link: false, group: true, selected: null, limit: PAGE };
   var visible = [];
 
   function locationMatches(it, l) {
@@ -112,6 +118,15 @@
   function apply() {
     var terms = fold(state.q).split(/\s+/).filter(Boolean);
     visible = items.filter(function (it) { return matches(it, terms); });
+    if (state.group) {
+      var seen = Object.create(null);
+      visible = visible.filter(function (it) {
+        if (!it.duplicate_group) return true;
+        if (seen[it.duplicate_group]) return false;
+        seen[it.duplicate_group] = true;
+        return true;
+      });
+    }
     renderList();
   }
 
@@ -131,8 +146,10 @@
       var head = el("div", "row-head");
       head.appendChild(el("span", "row-name", it.name));
       head.appendChild(el("span", "badge", KIND_SINGULAR[it.kind]));
-      it._profiles.forEach(function (p) { head.appendChild(el("span", "badge", p)); });
-      if (it.duplicate_group) head.appendChild(el("span", "badge dup", "duplikat"));
+      var grouped = state.group && it.duplicate_group;
+      (grouped ? it._groupProfiles : it._profiles).forEach(function (p) { head.appendChild(el("span", "badge", p)); });
+      if (grouped) head.appendChild(el("span", "badge dup", "×" + groups[it.duplicate_group].length));
+      else if (it.duplicate_group) head.appendChild(el("span", "badge dup", "duplikat"));
       li.appendChild(head);
       li.appendChild(el("div", "row-desc", (it.description || it.locations[0].path).split("\n")[0]));
       frag.appendChild(li);
@@ -148,9 +165,23 @@
   }
 
   function markSelected() {
+    var sel = state.selected ? byId[state.selected] : null;
+    var group = sel && state.group && sel.duplicate_group ? groups[sel.duplicate_group] : [state.selected];
     document.querySelectorAll("#list li.row").forEach(function (row) {
-      row.setAttribute("aria-selected", String(row.dataset.id === state.selected));
+      row.setAttribute("aria-selected", String(group.indexOf(row.dataset.id) !== -1));
     });
+  }
+
+  function instanceSummary(member) {
+    var facts = member._profiles.length ? ["profil: " + member._profiles.join(", ")] : [];
+    ["version", "scope", "matcher"].forEach(function (k) {
+      if (member.metadata[k]) facts.push((META_LABELS[k] || k).toLowerCase() + ": " + member.metadata[k]);
+    });
+    var origins = new Set(member.locations.map(function (l) {
+      return !l.origin ? "" : l.origin === "standalone" ? "samostalan" : "iz plugina " + pluginName(l.origin);
+    }).filter(Boolean));
+    origins.forEach(function (o) { facts.push(o); });
+    return facts.join(" · ");
   }
 
   function pluginName(origin) {
@@ -270,11 +301,25 @@
       body.appendChild(linkList(rel));
     }
     if (it.duplicate_group) {
-      var others = groups[it.duplicate_group].filter(function (id) { return id !== it.id; });
-      if (others.length) {
-        body.appendChild(el("h3", null, "Isto ime, druga stavka"));
-        body.appendChild(linkList(others.map(function (id) { return { id: id, label: "" }; })));
-      }
+      var all = groups[it.duplicate_group];
+      body.appendChild(el("h3", null, "Sve instance (" + all.length + ")"));
+      var inst = el("ul", "instances");
+      all.forEach(function (id) {
+        var member = byId[id];
+        var li = el("li", id === it.id ? "current" : "");
+        var label = (id === it.id ? "Prikazana: " : "") + member.locations[0].path;
+        if (id === it.id) li.appendChild(el("span", "inst-path", label));
+        else {
+          var btn = el("button", "linkish", label);
+          btn.type = "button";
+          btn.addEventListener("click", function () { openItem(id); });
+          li.appendChild(btn);
+        }
+        var summary = instanceSummary(member);
+        if (summary) li.appendChild(el("div", "loc-facts", summary));
+        inst.appendChild(li);
+      });
+      body.appendChild(inst);
     }
   }
 
@@ -348,6 +393,7 @@
     });
     $("f-dup").addEventListener("change", function () { state.dup = this.checked; refilter(); });
     $("f-link").addEventListener("change", function () { state.link = this.checked; refilter(); });
+    $("f-group").addEventListener("change", function () { state.group = this.checked; refilter(); markSelected(); });
     $("clear-filters").addEventListener("click", function () {
       state.kinds.clear();
       state.profiles.clear();

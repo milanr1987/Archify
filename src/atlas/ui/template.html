@@ -42,7 +42,10 @@
     <button type="button" id="clear-filters">Očisti filtere</button>
   </aside>
   <section class="results" id="results" aria-label="Rezultati" tabindex="-1">
-    <p class="count" id="count" aria-live="polite"></p>
+    <div class="list-head">
+      <p class="count" id="count" aria-live="polite"></p>
+      <label class="group-toggle"><input type="checkbox" id="f-group" checked> Grupiši isto ime</label>
+    </div>
     <ul class="list" id="list" role="listbox" aria-label="Stavke"></ul>
     <p class="empty" id="empty" hidden>Nijedna stavka ne odgovara pretrazi i filterima. Probaj kraći pojam ili „Očisti filtere“.</p>
     <button type="button" id="more" hidden>Prikaži još</button>

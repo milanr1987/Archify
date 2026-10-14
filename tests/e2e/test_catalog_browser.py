@@ -166,7 +166,27 @@ class CatalogBrowserTests(unittest.TestCase):
         page.check("input[name='origin'][value='plugin']")
         self.assertIn("cross-skill", self.names(page))
         page.click("#clear-filters")
-        self.assertEqual(page.locator("#count").text_content(), "9 stavki")
+        self.assertEqual(page.locator("#count").text_content(), "8 stavki")
+
+    def test_same_name_items_are_grouped_into_one_row(self):
+        page = self.open_page(self.small)
+        page.fill("#search", "dupe")
+        self.assertEqual(self.names(page), ["dupe"])
+        badges = page.locator("#list .row .badge").all_text_contents()
+        self.assertIn("×2", badges)
+        self.assertTrue({"claude", "max"} <= set(badges))
+        page.locator("#list li.row").first.click()
+        page.wait_for_selector("#detail-title")
+        instances = page.locator(".instances li")
+        self.assertEqual(instances.count(), 2)
+        self.assertIn("Sve instance (2)", page.locator("#detail-body").text_content())
+        page.uncheck("#f-group")
+        self.assertEqual(self.names(page), ["dupe", "dupe"])
+        page.click("#clear-filters")
+        self.assertFalse(page.is_checked("#f-group"))
+        page.check("#f-group")
+        page.fill("#search", "")
+        self.assertEqual(page.locator("#count").text_content(), "8 stavki")
 
     def test_commands_agents_hooks_render_and_filter_by_origin(self):
         plugin = Item(make_id("plugin", "tk"), "plugin", "toolkit", "", [Location("C:\\p\\tk", "max")],
@@ -268,7 +288,8 @@ class CatalogBrowserTests(unittest.TestCase):
             "items": self.perf_count, "queries": len(times), "median_ms": round(median, 2),
             "p95_ms": round(p95, 2), "browser": f"chromium {self.browser.version}",
         }, indent=2), encoding="utf-8")
-        self.assertLess(p95, 50)
+        # Spec cilj je p95 < 50 ms na lokalnom računaru; CI runner je sporiji pa postavlja svoju granicu.
+        self.assertLess(p95, float(os.environ.get("ATLAS_PERF_P95_MS", "50")))
 
     def test_5000_items_stay_usable(self):
         page = self.open_page(self.big)
