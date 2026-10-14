@@ -7,8 +7,9 @@
 
 - Novo opciono polje `projectDepth` (1–5, podrazumijevano 1 radi kompatibilnosti). Skener ide toliko nivoa ispod svakog `projectRoots` foldera; skriveni folderi i `excludeNames` se preskaču, uz zaštitu od ciklusa linkova.
 - Folder sa manifestom (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `.sln`, `.csproj`) je projekat i skener ne ide dublje (workspace paketi nisu zasebni projekti).
-- Folder sa `.git`, `CLAUDE.md` ili `AGENTS.md` je projekat, a skener nastavlja unutra: tako repo poput `Twiter_claude` i projekti u njemu dolaze zajedno. Unutar takvog projekta samo `.git` ili manifest označava novi projekat; `CLAUDE.md` u podfolderu je dokumentacija.
-- `init` pravi config sa postojećim uobičajenim folderima (Desktop, Documents, OneDrive, WebstormProjects, PycharmProjects, IdeaProjects, source/repos, Projects, code, dev, repos, GitHub) i `projectDepth: 3`. Folder iznad Archify ide kao `.` samo ako nije već unutar nekog od njih. `extraProjects` dobija `skill-evals` samo ako postoji.
+- Folder sa `.git`, `CLAUDE.md` ili `AGENTS.md` je projekat, a skener nastavlja unutra: tako radni repo i projekti u njemu dolaze zajedno. Unutar takvog projekta samo `.git` ili manifest označava novi projekat; `CLAUDE.md` u podfolderu je dokumentacija.
+- `init` pravi config sa postojećim uobičajenim folderima (Desktop, Documents, OneDrive, WebstormProjects, PycharmProjects, IdeaProjects, source/repos, Projects, code, dev, repos, GitHub) i `projectDepth: 3`. Folder iznad Archify ide kao `.` samo ako nije već unutar nekog od njih.
+- Revizija 2026-10-14 (javni repo): `init` ne pretpostavlja ničije profile. Upisuje samo izvore koji postoje: `~/.agents/skills`, svaki `~/.claude` i `~/.claude-<ime>` folder kao profil `claude` odnosno `<ime>` (skills, plugin registar, `settings.json`, `.claude.json`; za `claude` profil `~/.claude.json`) i `~/.codex/config.toml`. `extraProjects` i `documents` su prazni. Postojeći lokalni config se ne prepisuje.
 - `config/sources.current.json` se više ne čita; jedini podrazumijevani config je `sources.local.json`.
 
 ## Grupisanje u katalogu

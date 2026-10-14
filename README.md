@@ -10,8 +10,20 @@ The result is a single HTML file (`output/index.html`) that opens with a double 
 
 > The catalog UI is in Bosnian/Croatian/Serbian. UI labels are quoted below with an English translation where it helps.
 
+## Who it is for
+
+Anyone who uses Claude Code (one or several profiles such as `~/.claude`, `~/.claude-work`) and optionally Codex, and has lost track of which skill, plugin, MCP server or hook lives where. Clone it, run setup, and the catalog shows **your own** machine. Nothing from the author's machine is included.
+
+**Requirements and limitations**
+
+- Windows only (`setup.ps1`, `atlas.cmd`). The Python core is portable, but no macOS/Linux launcher is provided.
+- Python 3.12+ and any modern browser. Node.js 18+ only for the optional project maps.
+- The catalog UI is in Bosnian/Croatian/Serbian; this README and the code are in English.
+- Reads the standard Claude Code and Codex file layouts. Other tools are not scanned.
+
 ## Contents
 
+- [Who it is for](#who-it-is-for)
 - [Quick start](#quick-start)
 - [Daily use](#daily-use)
 - [What the catalog shows](#what-the-catalog-shows)
@@ -24,6 +36,7 @@ The result is a single HTML file (`output/index.html`) that opens with a double 
 - [Troubleshooting](#troubleshooting)
 - [Development and tests](#development-and-tests)
 - [Project layout](#project-layout)
+- [License](#license)
 
 ## Quick start
 
@@ -149,7 +162,9 @@ Exit codes: `0` success, `2` partial result with warnings (outputs are written),
 
 **Project discovery.** A folder is a project if it has a manifest (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `.sln`, `.csproj`) or a `.git`, `CLAUDE.md` or `AGENTS.md`. The scanner does not look inside manifest projects (workspace packages are not separate projects). It does look inside git or CLAUDE.md projects, so a repository and the projects in it are found together. Hidden folders are skipped.
 
-On a new computer, `init` fills `projectRoots` with the common project folders that exist there (Desktop, Documents, OneDrive, WebstormProjects, PycharmProjects, IdeaProjects, `source\repos`, Projects, code, dev, repos, GitHub) and sets `projectDepth` to 3. Projects show up without manual setup. Profiles that do not exist on a computer only produce warnings; remove them from the config if you do not use them.
+On a new computer, `init` fills `projectRoots` with the common project folders that exist there (Desktop, Documents, OneDrive, WebstormProjects, PycharmProjects, IdeaProjects, `source\repos`, Projects, code, dev, repos, GitHub) and sets `projectDepth` to 3. Projects show up without manual setup.
+
+`init` also detects your profiles: `~/.agents/skills`, every `~/.claude` and `~/.claude-<name>` folder (profile `claude` or `<name>`, with its skills, plugin registry, `settings.json` and `.claude.json`) and `~/.codex/config.toml`. Only sources that exist are written, so a fresh install has no "missing source" warnings. `extraProjects` and `documents` start empty; add your own. `init` never overwrites an existing config: delete `config/sources.local.json` and run `init` again to regenerate it.
 
 ## Notes
 
@@ -180,7 +195,7 @@ The version, commit and the SHA-256 of the download are pinned in `config/archif
 
 ```powershell
 $env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe tools\make_map.py creative-forge   # one map
+.\.venv\Scripts\python.exe tools\make_map.py my-project       # one map
 .\.venv\Scripts\python.exe tools\make_map.py --all            # every described map
 .\.venv\Scripts\python.exe tools\make_map.py --stale          # only maps that are not current
 ```
@@ -259,3 +274,7 @@ Rules for contributors and AI agents are in `AGENTS.md`. Each phase has a spec i
 | `.github/workflows/ci.yml` | CI: full test suite on Windows on every push |
 
 **Scope.** Phase 1: catalog. Phase 2: local notes. Phase 3: project maps and staleness. Phase 4: commands, agents and hooks. Phase 5: project discovery, grouping and the no-terminal launcher. Phase 6: skill drift, hook matrix and project activity. There is no server, no cloud and no editing in the browser.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The optional map renderer [Archify](https://github.com/tt-a1i/archify) is a separate MIT project, downloaded at setup and not included in this repository.

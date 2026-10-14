@@ -23,8 +23,8 @@ class IdentityTests(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "normalizacija velikih slova vrijedi na Windowsu")
     def test_windows_case_and_separators_normalized(self):
         self.assertEqual(
-            norm_path("C:/Users/Milan/Some Dir/x"),
-            norm_path("c:\\users\\milan\\some dir\\X"),
+            norm_path("C:/Users/Example/Some Dir/x"),
+            norm_path("c:\\users\\example\\some dir\\X"),
         )
 
     def test_missing_path_becomes_absolute(self):

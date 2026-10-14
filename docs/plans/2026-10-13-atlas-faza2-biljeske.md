@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Radni folder: C:\Users\PC\OneDrive\Desktop\Project\Archify. Komande se pokreću samo odatle, interpreterom `.\.venv\Scripts\python.exe`.
+- Radni folder: C:\Users\Example\Projects\Archify. Komande se pokreću samo odatle, interpreterom `.\.venv\Scripts\python.exe`.
 - Autoritativni fajl je `config/overrides.json`, lokalni i izuzet iz Gita.
 - Limit fajla je 1 MiB; tekst najviše 10.000 znakova, najviše 20 jedinstvenih oznaka po 100 znakova. ID mora biti 64 heksadecimalna znaka.
 - Skenirani izvori ostaju samo za čitanje. Bez izmjene globalnih skillova, pluginova ili MCP postavki.

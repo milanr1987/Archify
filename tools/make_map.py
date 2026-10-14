@@ -1,7 +1,7 @@
 """Napravi ili obnovi mapu projekta iz opisa config/maps/<slug>.json.
 
 Upotreba, iz Archify foldera, poslije `atlas refresh`:
-    $env:PYTHONPATH = "src"; .\\.venv\\Scripts\\python.exe tools\\make_map.py session-miner
+    $env:PYTHONPATH = "src"; .\\.venv\\Scripts\\python.exe tools\\make_map.py my-project
     ... tools\\make_map.py --all
     ... tools\\make_map.py --stale     (samo mape koje nisu „Aktuelna“)
 

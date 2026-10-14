@@ -54,7 +54,7 @@ analysis = {'schemaVersion':1,'projectId':project['id'],'projectRoot':str(root),
     'generatedAt':datetime.now(timezone.utc).isoformat(),'components':components,
     'edges':[{'from':a,'to':b,'label':'lokalni tok','status':'documented',
               'evidenceIds':[a,b]} for a,b in pairs], 'evidence':evidence,
-    'openQuestions':['Demonstraciona mapa; nije mapa creative-forge ili session-miner.']}
+    'openQuestions':['Demonstraciona mapa samog Atlasa, ne stvarnog projekta.']}
 native = {'schema_version':2,'diagram_type':'workflow','meta':{
     'title':'Atlas: lokalna demonstraciona mapa','quality_profile':'standard',
     'output':'output/maps/atlas-demo.html'},
@@ -68,7 +68,7 @@ native['edges'] = [{'from':a,'to':b} for a,b in pairs]
 native['cards'] = [{'dot':'cyan','title':'Granice dokaza','items':[
     'Lokalni hashovi i linije su u analysis JSON-u.',
     'Ovo je demo Atlasa, bez tvrdnje o upstream Git verifikaciji.',
-    'creative-forge i session-miner nisu dostupni na ovom racunaru.']}]
+    'Za stvarni projekat koristi tools/make_map.py i config/maps/.']}]
 folder = root/'data/demo-input'
 folder.mkdir(parents=True,exist_ok=True)
 (folder/'analysis.json').write_text(json.dumps(analysis,ensure_ascii=False,indent=2),encoding='utf-8')

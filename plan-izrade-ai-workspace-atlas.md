@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use `superpowers:executing-plans`, if available, to implement this document task by task. Track progress with checkboxes. This file contains both the specification and implementation plan. Do not assume permission to delegate to subagents.
 
-**Goal:** Napraviti lokalni, pretraživ katalog Milanovih projekata, AI skillova i MCP konfiguracija, sa interaktivnim Archify mapama odabranih projekata.
+**Goal:** Napraviti lokalni, pretraživ katalog korisnikovih projekata, AI skillova i MCP konfiguracija, sa interaktivnim Archify mapama odabranih projekata.
 
 **Architecture:** Node CLI čita dozvoljene lokalne izvore i pravi normalizovan JSON inventar. Statični katalog prikazuje taj inventar i otvara zasebne Archify HTML mape. Codex analizira odabrani projekat i priprema mapu iz provjerenih izvora; skener sam ne zaključuje arhitekturu proizvoljnog koda.
 
@@ -16,7 +16,7 @@
 
 ## Globalna ograničenja
 
-- Projekat i svi generisani izlazi ostaju u `C:\Users\Milan\Desktop\desktop 2.4.2021\Twiter_claude\Archify`.
+- Projekat i svi generisani izlazi ostaju u `C:\Users\Example\Projects\Archify`.
 - Izvorni projekti, instrukcije, konfiguracije i korpusi čitaju se bez izmjena.
 - Lokalni Windows rad, uključujući putanje s razmacima i slovima č, ć, š, ž, đ.
 - Interfejs i uputstva su na BCS-u; promptovi za kopiranje su na engleskom.
@@ -95,7 +95,7 @@ Naš katalog, skener, klasifikacija profila, dokazi, pretraga i lične bilješke
 Korijenski radni folder je:
 
 ```text
-C:\Users\Milan\Desktop\desktop 2.4.2021\Twiter_claude
+C:\Users\Example\Projects
 ```
 
 Početna konfiguracija sadrži `workspaceRoot`, `projectRoots`, `skillRoots`, `mcpSources`, `documents` i `excludeNames`. Sve putanje se normalizuju u apsolutne putanje pri učitavanju konfiguracije. Relativne putanje računaju se od konfiguracionog fajla, nikada od slučajnog trenutnog terminalskog foldera.
@@ -113,10 +113,10 @@ Iz `package.json` uzeti ime, opis, workspace strukturu i **nazive** scripts koma
 Početne lokacije za provjeru postojanja:
 
 ```text
-C:\Users\Milan\.agents\skills
-C:\Users\Milan\.claude\skills
-C:\Users\Milan\.claude-max\skills
-C:\Users\Milan\.claude-pro\skills
+C:\Users\Example\.agents\skills
+C:\Users\Example\.claude\skills
+C:\Users\Example\.claude-max\skills
+C:\Users\Example\.claude-pro\skills
 ```
 
 Dodatne lokacije unijeti eksplicitno. Ne pretpostaviti da neki alat traži baš ove foldere niti da pronalaženje fajla znači da je skill aktivan.
@@ -458,7 +458,7 @@ Ne prepisivati analysis/map JSON prilikom običnog refresh-a. Za osvježavanje a
 - [ ] Zabilježi verzije alata, komande, rezultate i poznate granice u verification fajl.
 - [ ] Ostaviti korisniku funkcionalan index, JSON inventar, stvarnu mapu i kratak izvještaj. Ne označiti demo kao stvarnu projektnu analizu.
 
-## 14. Uputstvo koje Milan šalje Codexu
+## 14. Uputstvo koje vlasnik šalje Codexu
 
 Otvori `Archify` kao radni folder i pošalji sljedeće. Ovaj prompt pokreće buduću implementaciju; izrada ovog dokumenta sama ne instalira niti pravi aplikaciju.
 
@@ -493,6 +493,6 @@ for refreshing the catalog, and verification results in BCS.
 
 Tek nakon stvarne upotrebe razmotriti: Codex TOML adapter prema tadašnjoj stvarnoj shemi, više projektnih mapa, katalog pluginova prema provjerenim registrima i browser editor bilješki uz lokalni server. Svaki dodatak treba da riješi konkretan problem koji se pojavio u korišćenju prve verzije.
 
-Najvažniji prvi rezultat je da Milan pronađe alat/konfiguraciju kroz pretragu i razumije jedan svoj projekat kroz stvarnu mapu, bez ručnog pretraživanja velikog broja foldera.
+Najvažniji prvi rezultat je da korisnik pronađe alat/konfiguraciju kroz pretragu i razumije jedan svoj projekat kroz stvarnu mapu, bez ručnog pretraživanja velikog broja foldera.
 
 Ažurirano: 2026-10-13. Osvježiti ovaj plan kada upstream Archify promijeni CLI/sheme ili se dogovori novi obim projekta.

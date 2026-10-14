@@ -6,7 +6,7 @@
 
 ## 1. Cilj i uspjeh
 
-Milan dvoklikom otvori `output/index.html` i za manje od 10 sekundi nađe:
+Korisnik dvoklikom otvori `output/index.html` i za manje od 10 sekundi nađe:
 
 1. gdje je skill X, u kojem profilu je pronađen i da li je samostalan ili dolazi iz plugina;
 2. gdje je deklarisan MCP server Y (profil, scope, transport);
@@ -22,7 +22,7 @@ Katalog je snimak diska u trenutku skeniranja. Ne tvrdi da je MCP server pokrenu
 
 ## 2. Ograničenja
 
-- Sav kod i izlaz ostaju u `Twiter_claude\Archify`. Skenirani fajlovi se samo čitaju.
+- Sav kod i izlaz ostaju u `Projects\Archify`. Skenirani fajlovi se samo čitaju.
 - Python 3.12+ (lokalno 3.13.3), standardna biblioteka + PyYAML (`yaml.safe_load`). TOML preko ugrađenog `tomllib`.
 - Bez mreže pri radu. Katalog ne učitava ništa izvana.
 - Ništa iz skeniranih izvora se ne izvršava.
@@ -35,7 +35,7 @@ Katalog je snimak diska u trenutku skeniranja. Ne tvrdi da je MCP server pokrenu
 
 | Izvor | Lokacija | Format |
 |---|---|---|
-| Projekti | direktni podfolderi `Twiter_claude` sa markerom + eksplicitni `extraProjects` | `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `*.sln`, `*.csproj` |
+| Projekti | direktni podfolderi `Projects` sa markerom + eksplicitni `extraProjects` | `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `*.sln`, `*.csproj` |
 | Skillovi | `~\.agents\skills` (132), `~\.claude\skills` (97, 9 linkova), `~\.claude-max\skills` (111, 3 linka), `~\.claude-pro\skills` (link na `.claude-max\skills`) | `<folder>\SKILL.md` sa YAML frontmatterom |
 | Pluginovi | `~\.claude*\plugins\installed_plugins.json` (10 / 13 / 13) | `{version, plugins: {"ime@marketplace": [ {scope, installPath, version, installedAt, lastUpdated, gitCommitSha} ]}}` |
 | Plugin skillovi | `<installPath>\skills\<ime>\SKILL.md` | isto kao skillovi |
@@ -50,33 +50,33 @@ Brojevi u tabeli su snimak zabilježen pri pisanju specifikacije, ne konstante z
 
 ## 4. Konfiguracija
 
-`config/sources.example.json` je u gitu, sa generičkim putanjama. `atlas init` iz njega pravi `config/sources.local.json` sa Milanovim stvarnim putanjama, samo ako taj fajl ne postoji. Lokalni fajl je u `.gitignore`.
+`config/sources.example.json` je u gitu, sa generičkim putanjama. `atlas init` iz njega pravi `config/sources.local.json` sa korisnikovim stvarnim putanjama, samo ako taj fajl ne postoji. Lokalni fajl je u `.gitignore`.
 
 ```json
 {
-  "workspaceRoot": "C:\\Users\\Milan\\Desktop\\desktop 2.4.2021\\Twiter_claude",
+  "workspaceRoot": "C:\\Users\\Example\\Projects",
   "projectRoots": ["."],
   "extraProjects": ["skill-evals"],
   "excludeNames": ["Archify", "node_modules", ".git", ".venv", "venv", "dist", "build", "output", "graphify-out", "__pycache__"],
   "skillRoots": [
-    {"path": "C:\\Users\\Milan\\.agents\\skills", "profile": "agents", "label": ".agents"},
-    {"path": "C:\\Users\\Milan\\.claude\\skills", "profile": "claude", "label": ".claude"},
-    {"path": "C:\\Users\\Milan\\.claude-max\\skills", "profile": "max", "label": ".claude-max"},
-    {"path": "C:\\Users\\Milan\\.claude-pro\\skills", "profile": "pro", "label": ".claude-pro"}
+    {"path": "C:\\Users\\Example\\.agents\\skills", "profile": "agents", "label": ".agents"},
+    {"path": "C:\\Users\\Example\\.claude\\skills", "profile": "claude", "label": ".claude"},
+    {"path": "C:\\Users\\Example\\.claude-max\\skills", "profile": "max", "label": ".claude-max"},
+    {"path": "C:\\Users\\Example\\.claude-pro\\skills", "profile": "pro", "label": ".claude-pro"}
   ],
   "pluginRegistries": [
-    {"path": "C:\\Users\\Milan\\.claude\\plugins\\installed_plugins.json", "profile": "claude"},
-    {"path": "C:\\Users\\Milan\\.claude-max\\plugins\\installed_plugins.json", "profile": "max"},
-    {"path": "C:\\Users\\Milan\\.claude-pro\\plugins\\installed_plugins.json", "profile": "pro"}
+    {"path": "C:\\Users\\Example\\.claude\\plugins\\installed_plugins.json", "profile": "claude"},
+    {"path": "C:\\Users\\Example\\.claude-max\\plugins\\installed_plugins.json", "profile": "max"},
+    {"path": "C:\\Users\\Example\\.claude-pro\\plugins\\installed_plugins.json", "profile": "pro"}
   ],
   "mcpSources": [
-    {"path": "C:\\Users\\Milan\\.claude.json", "format": "claude-json", "profile": "claude"},
-    {"path": "C:\\Users\\Milan\\.claude\\settings.json", "format": "claude-json", "profile": "claude"},
-    {"path": "C:\\Users\\Milan\\.claude-max\\.claude.json", "format": "claude-json", "profile": "max"},
-    {"path": "C:\\Users\\Milan\\.claude-max\\settings.json", "format": "claude-json", "profile": "max"},
-    {"path": "C:\\Users\\Milan\\.claude-pro\\.claude.json", "format": "claude-json", "profile": "pro"},
-    {"path": "C:\\Users\\Milan\\.claude-pro\\settings.json", "format": "claude-json", "profile": "pro"},
-    {"path": "C:\\Users\\Milan\\.codex\\config.toml", "format": "codex-toml", "profile": "codex"}
+    {"path": "C:\\Users\\Example\\.claude.json", "format": "claude-json", "profile": "claude"},
+    {"path": "C:\\Users\\Example\\.claude\\settings.json", "format": "claude-json", "profile": "claude"},
+    {"path": "C:\\Users\\Example\\.claude-max\\.claude.json", "format": "claude-json", "profile": "max"},
+    {"path": "C:\\Users\\Example\\.claude-max\\settings.json", "format": "claude-json", "profile": "max"},
+    {"path": "C:\\Users\\Example\\.claude-pro\\.claude.json", "format": "claude-json", "profile": "pro"},
+    {"path": "C:\\Users\\Example\\.claude-pro\\settings.json", "format": "claude-json", "profile": "pro"},
+    {"path": "C:\\Users\\Example\\.codex\\config.toml", "format": "codex-toml", "profile": "codex"}
   ],
   "documents": [
     {"path": "my-claude-system.md", "title": "Moj Claude sistem"},
