@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.tmp
 config/sources.local.json
+config/sources.current.json
 config/overrides.json
 config/overrides.json.*.staged
 config/overrides.json.*.bak

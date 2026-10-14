@@ -103,6 +103,18 @@ Za svaki skill root koji se zove `skills` Atlas čita susjedne `commands/` i `ag
 
 Komanda iz podfoldera dobija namespace (`git/commit.md` → `git:commit`). Hook se prikazuje kao `Događaj · matcher`, sa brojem i tipom hookova. Sadržaj hooka (`command`, `prompt`, `url`, `headers`, `env`) se nikad ne čita u izlaz. Spec: `docs/specs/2026-10-14-atlas-faza4-komande-agenti-hookovi-design.md`.
 
+## Neusklađenost i stanje (Faza 6)
+
+Skill lokacije imaju SHA-256 sadržaja cijelog foldera, bez izvoza sadržaja. Limiti su 1.024 fajla, 16 MiB po fajlu i 64 MiB ukupno; nečitljivi/nesigurni izvori daju „nepoznato“ i upozorenje. „Samo različit sadržaj“ filtrira razlike među uporedivim kopijama; detalji pokazuju hash varijante i porijeklo. Samostalni skillovi se porede međusobno, a plugin skillovi samo unutar istog plugina, marketplacea i poznate verzije. Različite plugin verzije same po sebi nisu drift.
+
+„Matrica hookova“ prikazuje event/matcher po svim konfigurisanima profilima: broj, tipove i settings/plugin porijeklo. „Nema u ovom profilu“ znači da deklaracija nije pronađena u snimku; pogledaj upozorenja nečitljivih izvora. Nema analize ili prikaza sadržaja komandi.
+
+Sortiranje „Zadnja aktivnost projekta“ koristi kasniji datum commita ili Claude session mtime. Detalji pokazuju granu, broj porcelain linija nekomitovanih promjena i datume sesija po profilu. Git komande su read-only sa timeoutom, bez opcionalnih lockova i bez fsmonitor komande. JSONL sadržaj se ne otvara. Bez Git-a/sesija prikazuje se unknown; to nije dokaz neaktivnosti. Izvještaj data/scan-report.md sadrži iste sažetke. Spec i plan Faze 6 su u docs/specs/ i docs/plans/.
+
+Primjer: pokreni `.\atlas.cmd refresh`, otvori `.\atlas.cmd open`, uključi „Samo različit sadržaj“ i izaberi skill da vidiš varijante. „Matrica hookova“ poredi deklaracije profila, a „Zadnja aktivnost projekta“ sortira projekte prema dostupnim datumima.
+
+Isti hash ne znači da je skill učitan u sesiji. `lastSessionAt` je mtime fajla, a ne vrijeme posljednje poruke ili dokaz rada. Claude Code može obrisati stare sesije prema `cleanupPeriodDays`; arhivirane/obrisane sesije zato nisu u ovom snimku. Postavka se ne mijenja niti čita radi ovog pregleda. Izvor: [Claude Code settings](https://code.claude.com/docs/en/settings).
+
 ## Tačnost i privatnost
 
 MCP „deklarisan u konfiguraciji“ ne znači da server radi. Skill na disku ne znači da je učitan u sesiji.
@@ -137,7 +149,7 @@ Screenshoti i performanse su u `output/e2e/`, stvarna verifikacija u `output/ver
 
 ## Obim
 
-Faza 1 pravi katalog; Faza 2 dodaje lokalne bilješke; Faza 3 lokalne Archify mape i praćenje njihove zastarjelosti; Faza 4 slash komande, agente i hookove. Server, cloud i browser uređivanje nisu uključeni.
+Faza 1 pravi katalog; Faza 2 dodaje lokalne bilješke; Faza 3 lokalne Archify mape i praćenje njihove zastarjelosti; Faza 4 slash komande, agente i hookove; Faza 5 pronalaženje, grupisanje i pokretanje; Faza 6 neusklađenost skillova, matricu hookova i stanje projekata. Server, cloud i browser uređivanje nisu uključeni.
 
 ## Lokalne mape (Faza 3)
 
