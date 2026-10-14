@@ -393,7 +393,12 @@
     });
     $("f-dup").addEventListener("change", function () { state.dup = this.checked; refilter(); });
     $("f-link").addEventListener("change", function () { state.link = this.checked; refilter(); });
+    // Browser može vratiti staro stanje polja pri osvježavanju; stanje liste uvijek prati polje.
+    state.group = $("f-group").checked;
     $("f-group").addEventListener("change", function () { state.group = this.checked; refilter(); markSelected(); });
+    window.addEventListener("pageshow", function () {
+      if (state.group !== $("f-group").checked) { state.group = $("f-group").checked; refilter(); markSelected(); }
+    });
     $("clear-filters").addEventListener("click", function () {
       state.kinds.clear();
       state.profiles.clear();

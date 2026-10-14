@@ -186,6 +186,16 @@ class CatalogBrowserTests(unittest.TestCase):
             page.keyboard.press("ArrowDown")
         self.assertGreater(page.evaluate("document.getElementById('list').scrollTop"), 0)
 
+    def test_grouping_follows_checkbox_state_restored_by_browser(self):
+        # Browser može pri osvježavanju vratiti staro stanje polja; lista mora pratiti stvarno stanje polja.
+        restored = Path(self._tmp.name) / "vraceno-stanje.html"
+        html = self.small.read_text(encoding="utf-8")
+        self.assertIn('id="f-group" checked', html)
+        restored.write_text(html.replace('id="f-group" checked', 'id="f-group"'), encoding="utf-8")
+        page = self.open_page(restored)
+        self.assertFalse(page.is_checked("#f-group"))
+        self.assertEqual(page.locator("#count").text_content(), "9 stavki")
+
     def test_same_name_items_are_grouped_into_one_row(self):
         page = self.open_page(self.small)
         page.fill("#search", "dupe")
