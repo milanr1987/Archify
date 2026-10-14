@@ -14,10 +14,10 @@ output/
 *.egg-info/
 .superpowers/
 vendor/
-config/sources.current.json
 .tools/
 *.stackdump
 .env
 .env.*
 !.env.example
 config/*.bak-*
+config/maps/
