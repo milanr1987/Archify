@@ -205,7 +205,7 @@
     body.appendChild(el("code", "path item-id", it.id));
     if (it.kind === "project") maps.filter(function (map) { return map.projectId === it.id; }).forEach(function (map) {
       var labels = { current: "Aktuelna", stale: "Zastarjela", unverified: "Neprovjerena" };
-      body.appendChild(el("p", "map-status", "Mapa: " + labels[map.status]));
+      body.appendChild(el("p", "map-status status-" + map.status, "Mapa: " + labels[map.status]));
       var link = el("a", "map-link", map.title);
       if (/^maps\/[a-z0-9]+(?:-[a-z0-9]+)*\.html$/.test(map.htmlPath)) {
         link.setAttribute("href", map.htmlPath);
