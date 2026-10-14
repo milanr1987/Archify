@@ -5,8 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "workspace-atlas"
 version = "0.1.0"
-description = "Lokalni katalog projekata, skillova, pluginova i MCP servera"
+description = "Local, offline catalog of your Claude Code and Codex setup: projects, skills, plugins, MCP servers, commands, agents and hooks"
 requires-python = ">=3.12"
+license = { text = "MIT" }
 dependencies = ["PyYAML>=6"]
 
 [project.optional-dependencies]
