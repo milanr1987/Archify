@@ -1,54 +1,52 @@
-# Archify
+# Archify: AI Workspace Atlas
 
-**AI Workspace Atlas** je lokalni katalog projekata, skillova, pluginova, MCP konfiguracija, slash komandi, agenata, hookova i dokumenata, sa privatnim bilješkama i projektnim mapama.
-Otvori `output/index.html` dvoklikom: pretraga, filteri, detalji i kopiranje putanja rade bez servera i interneta.
+A local, offline catalog of everything in your AI coding setup: projects, skills, plugins, MCP servers, slash commands, subagents, hooks and documents across all your Claude Code and Codex profiles. It adds private notes, project maps, skill drift detection and project activity on top.
 
-Repo sadrži kod, testove, setup i dokumentaciju. Svaki računar pravi svoj inventar; privatni podaci i lokalno okruženje se ne preuzimaju iz Gita. Za korištenje nisu potrebni pretplata, hosting ili API ključ. Internet je potreban za početno preuzimanje besplatnih zavisnosti.
+The result is a single HTML file (`output/index.html`) that opens with a double click. Search, filters, details and "copy path" work without a server or an internet connection.
 
-## Svakodnevna upotreba
+- **Local only.** No subscription, hosting or API key. Internet is needed once, to download free dependencies.
+- **Read-only.** The scanner never runs your projects, skills or commands and never changes scanned files.
+- **Private by design.** Each computer builds its own inventory. Your paths, notes and catalog never go into Git.
 
-Najlakše: **dvoklik na prečicu „AI Atlas“ na Desktopu**. Ona osvježi katalog i otvori ga u browseru, bez terminala; ako nešto pođe po zlu, greška se pokaže u prozoru. Setup pravi prečicu sam; ručno: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\create_shortcut.ps1`.
+> The catalog UI is in Bosnian/Croatian/Serbian. UI labels are quoted below with an English translation where it helps.
 
-Iz terminala, u folderu Archify:
+## Contents
 
-```powershell
-.\atlas.cmd refresh
-.\atlas.cmd open
-```
+- [Quick start](#quick-start)
+- [Daily use](#daily-use)
+- [What the catalog shows](#what-the-catalog-shows)
+- [Command reference](#command-reference)
+- [Configuration](#configuration)
+- [Notes](#notes)
+- [Project maps](#project-maps)
+- [Accuracy and privacy](#accuracy-and-privacy)
+- [Performance](#performance)
+- [Troubleshooting](#troubleshooting)
+- [Development and tests](#development-and-tests)
+- [Project layout](#project-layout)
 
-`refresh` osvježava `data/inventory.json`, `data/scan-report.md` i `output/index.html`.
-`scan` pravi samo JSON i izvještaj; `build` obnavlja HTML iz postojećeg JSON-a.
-`open` prvo oporavlja eventualno prekinutu objavu, zatim otvara katalog.
-Exit kod 0 znači uspjeh, 2 djelimičan pregled sa upozorenjima, 1 grešku.
-`scan` i `refresh` na početku ispisuju `Config: ...`, putanju configa koji je stvarno korišten.
+## Quick start
 
-Na vrhu kataloga izaberi tip, profil ili pretraži ime/opis/putanju.
-Pronađeni skill može imati više lokacija i profila; detalji pokazuju samostalno ili plugin porijeklo po lokaciji.
-`/` fokusira pretragu, strelice prolaze kroz fokusiranu listu, Enter otvara detalje, Esc zatvara detalje/briše pretragu.
-Za pronalaženje putanje koristi „Kopiraj putanju“; browser fallback označava tekst za Ctrl+C.
-
-## Instalacija na drugom računaru
-
-Potreban je **Python 3.12+**, preporučeno **Python 3.13**, i browser. Git je potreban samo za kloniranje; možeš koristiti GitHub **Code → Download ZIP**, pa raspakovati folder.
-
-Iz PowerShella:
+Requirements: Windows, **Python 3.12+** (3.13 recommended) and a browser. Git is only needed to clone; GitHub **Code → Download ZIP** works too.
 
 ```powershell
 git clone https://github.com/milanr1987/Archify.git
 cd Archify
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
-.\atlas.cmd open
 ```
 
-Ako koristiš ZIP, otvori PowerShell u raspakovanom folderu i pokreni posljednje dvije komande. ExecutionPolicy važi za taj poziv; skripta ne mijenja trajnu sistemsku politiku.
+Setup creates a local `.venv`, installs the package, writes your config, builds the first catalog and puts an **"AI Atlas"** shortcut on your Desktop. The `ExecutionPolicy` flag applies to that one call only; your system policy is not changed.
 
-Setup pravi lokalni `.venv`, instalira paket, pravi config i generiše prvi katalog. Ako je Python na posebnoj lokaciji:
+Setup options:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -PythonExe "C:\putanja\do\python.exe"
-```
+| Option | Effect |
+|---|---|
+| `-PythonExe "C:\path\to\python.exe"` | Use a specific Python |
+| `-WithMaps` | Also install the pinned Archify renderer for [project maps](#project-maps) |
+| `-Development` | Also install Playwright and a local Chromium for browser tests |
+| `-NoShortcut` | Skip the Desktop shortcut |
 
-Alternativa bez setup skripte:
+Without the setup script:
 
 ```powershell
 python -m venv .venv
@@ -58,159 +56,206 @@ python -m venv .venv
 .\atlas.cmd open
 ```
 
-`init` kreira `config/sources.local.json` i ne prepisuje postojeći fajl. `atlas.cmd` uvijek koristi lokalni `.venv`.
-Paket koristi editable instalaciju i namijenjen je radu iz ovog projektnog foldera; nije prenosiva wheel aplikacija.
-Ne kopiraj `.venv` sa drugog računara: pokreni setup na svakom novom računaru. Nepostojeći Claude profili mogu dati upozorenja; uredi izvore koje stvarno koristiš, pa ponovi refresh.
+Run setup on every new computer. Do not copy `.venv` between machines. The package is an editable install meant to run from this folder, not a portable wheel.
 
-## Lokalne bilješke (Faza 2)
+## Daily use
 
-U detaljima stavke katalog prikazuje njen ID. Koristi taj ID kroz CLI:
+**Double-click "AI Atlas" on your Desktop.** It refreshes the catalog and opens it in your browser, with no terminal window. If something fails, the error appears in a Windows message box. To recreate the shortcut: `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\create_shortcut.ps1`.
+
+From a terminal in the Archify folder:
 
 ```powershell
-.\atlas.cmd note ITEM_ID --text "Moja bilješka" --tag "korisno"
-.\atlas.cmd note ITEM_ID --text "Novi tekst"
+.\atlas.cmd refresh   # rescan everything and rebuild the catalog
+.\atlas.cmd open      # open the catalog
+```
+
+If a browser tab is already open, press **Ctrl+F5** after a refresh to load the new file.
+
+Keyboard: `/` focuses search, arrow keys move through the list, `Enter` opens details, `Esc` closes details or clears the search.
+
+## What the catalog shows
+
+| Area | What it does |
+|---|---|
+| **Counters** (top) | Totals per type. Click one to filter. |
+| **Search** | Matches name, description, paths, metadata and notes. Case and diacritics are ignored (`č` = `c`, `đ` = `dj`). |
+| **Filters** (left) | Type, profile (`claude`, `max`, `pro`, `agents`, `codex`), origin (standalone or from a plugin), duplicates only, linked only, "Samo različit sadržaj" (different content only). Profile, origin and link filters must match the **same** location. |
+| **"Grupiši isto ime"** (group same name) | On by default. The same skill, plugin or hook in several profiles becomes one row with all profiles and a `×N` badge. Details list every instance with its profile, version and origin. |
+| **Sorting** | By name, or "Zadnja aktivnost projekta" (latest project activity: last commit or last Claude session). |
+| **Details** (right) | Every location with a copy button, profiles, origin, metadata, related items (for example "Dio plugina", part of plugin), the item ID for notes, and the project map link. |
+| **"Matrica hookova"** (hook matrix) | Which hook (event and matcher) exists in which profile, with count, type and settings/plugin origin. Only profiles with at least one hook get a column; the rest are listed under the table. "—" means not found in this snapshot. It uses the list area; close it with "Zatvori matricu", `Esc`, or by changing a filter or search. |
+
+### Skill drift
+
+Each skill location gets a SHA-256 of its whole folder (content is never exported). Copies that should be identical are compared:
+
+- standalone skills of the same name with each other;
+- plugin skills only within the same plugin, marketplace and known version.
+
+Different plugin versions are not drift. The filter "Samo različit sadržaj" shows only groups whose copies really differ, and the details show each variant's short hash, profile and path. Limits: 1,024 files, 16 MiB per file, 64 MiB per skill. Unreadable or unsafe folders give `unknown` and a warning.
+
+### Project activity
+
+For projects with their own `.git`, the catalog shows branch, number of uncommitted changes (`git status --porcelain` lines) and last commit date. It also shows the newest Claude session file time per profile. Git runs read-only, with a 5 s timeout, no optional locks and no fsmonitor. Session `.jsonl` files are never opened; only their modification time is read. `unknown` does not mean inactive.
+
+### What gets discovered
+
+| Type | Source |
+|---|---|
+| Projects | Folders under `projectRoots` (see [Configuration](#configuration)) |
+| Skills | `SKILL.md` folders in each skill root and inside installed plugins |
+| Plugins | `installed_plugins.json` of each Claude profile |
+| MCP servers | `.claude.json`, `settings.json`, project `.mcp.json` and Codex `config.toml` |
+| Commands and agents | `commands/` and `agents/` next to each `skills` root, and inside plugins. `git/commit.md` becomes `git:commit`. |
+| Hooks | The `hooks` key of Claude `settings.json` and plugin `hooks/hooks.json` |
+| Documents | Listed documents plus each project's `README.md`, `AGENTS.md`, `CLAUDE.md` |
+
+Skill frontmatter that is not strict YAML (for example an unquoted `Arguments: x` inside `description`) is read leniently, the same way Claude Code reads it, with an `info` note `lenient-frontmatter`. Only if that also fails does the item fall back to its folder name with a warning.
+
+## Command reference
+
+All commands run through `atlas.cmd`, which always uses the local `.venv` and works from any folder.
+
+| Command | What it does |
+|---|---|
+| `init [--config PATH]` | Create `config/sources.local.json` if it does not exist. Never overwrites. |
+| `scan [--config PATH]` | Write `data/inventory.json` and `data/scan-report.md`. |
+| `build` | Rebuild `output/index.html` from the existing inventory. |
+| `refresh [--config PATH]` | `scan` + `build`. |
+| `open` | Recover an interrupted publish if needed, then open the catalog. |
+| `launch` | `refresh` + `open` without a console; errors appear in a message box. Used by the Desktop shortcut. |
+| `note ITEM_ID ...` | Add, change or delete a private note. See [Notes](#notes). |
+| `map PROJECT_ID ...` | Validate and publish a project map. See [Project maps](#project-maps). |
+
+`scan` and `refresh` first print `Config: <path>`, the config actually used. A relative `--config` path is resolved from the Archify folder, not the current directory.
+
+Exit codes: `0` success, `2` partial result with warnings (outputs are written), `1` error (previous outputs are kept).
+
+## Configuration
+
+`init` writes `config/sources.local.json` for the current computer. It is private and not in Git; `config/sources.example.json` shows the format.
+
+| Key | Meaning |
+|---|---|
+| `workspaceRoot` | Absolute path. Relative paths below are resolved from it. |
+| `projectRoots` | Folders to search for projects. |
+| `projectDepth` | How many levels below each root to search (1 to 5, default 1). |
+| `extraProjects` | Extra project folders that have no marker. |
+| `excludeNames` | Folder names to skip anywhere (for example `node_modules`, or a temporary folder). |
+| `skillRoots` | `path`, `profile`, `label` for each skills folder. |
+| `pluginRegistries` | `path` to `installed_plugins.json` and `profile`. |
+| `mcpSources` | `path`, `profile` and `format`: `claude-json`, `mcp-json` or `codex-toml`. |
+| `documents` | `path` and `title` of extra documents. |
+
+**Project discovery.** A folder is a project if it has a manifest (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `.sln`, `.csproj`) or a `.git`, `CLAUDE.md` or `AGENTS.md`. The scanner does not look inside manifest projects (workspace packages are not separate projects). It does look inside git or CLAUDE.md projects, so a repository and the projects in it are found together. Hidden folders are skipped.
+
+On a new computer, `init` fills `projectRoots` with the common project folders that exist there (Desktop, Documents, OneDrive, WebstormProjects, PycharmProjects, IdeaProjects, `source\repos`, Projects, code, dev, repos, GitHub) and sets `projectDepth` to 3. Projects show up without manual setup. Profiles that do not exist on a computer only produce warnings; remove them from the config if you do not use them.
+
+## Notes
+
+Every item shows its ID in the details panel. Use it with the `note` command:
+
+```powershell
+.\atlas.cmd note ITEM_ID --text "My note" --tag "useful"
+.\atlas.cmd note ITEM_ID --text "New text"      # tags are kept
 .\atlas.cmd note ITEM_ID --clear-tags
 .\atlas.cmd note ITEM_ID --delete
 ```
 
-`ITEM_ID` zamijeni stvarnim ID-jem stavke. `--tag` se može ponoviti i zamjenjuje oznake; bez tog argumenta postojeće oznake ostaju. `--clear-tags` ih uklanja. Brisanje se ne kombinuje sa drugim opcijama bilješke.
+`--tag` can be repeated and replaces the tag set. Without `--tag`, existing tags stay. `--delete` cannot be combined with other options.
 
-Bilješke su u privatnom `config/overrides.json`, izuzetom iz Gita. Komanda koristi postojeći inventar i objavljuje bilješke i novi katalog zajedno, uz lock i oporavak. Prethodno pokreni scan ili refresh. Tekst je ograničen na 10.000 znakova, oznake na 20 jedinstvenih vrijednosti po 100 znakova, fajl na 1 MiB.
+Notes live in `config/overrides.json` (private, not in Git) and are published together with the catalog, under the same lock and recovery as every other output. They survive refreshes. If an item disappears, its note is kept and counted as orphaned; it comes back when the same ID returns. Limits: 10,000 characters of text, 20 tags of up to 100 characters, 1 MiB file. The browser only shows and searches notes. Do not put secrets in notes: their text is embedded in the local HTML.
 
-Refresh čuva bilješke. Ako stavka nestane, bilješka ostaje sačuvana i CLI prijavljuje broj nepovezanih bilješki; ona ne predstavlja instalirani alat. Povratak istog ID-ja ponovo je povezuje. Browser samo prikazuje i pretražuje bilješke; ne uređuje ih niti ih čuva u localStorage. Ne stavljaj tajne u bilješke jer se njihov sadržaj ugrađuje u lokalni HTML.
+## Project maps
 
-## Dodavanje izvora
-
-Uredi `config/sources.local.json`: `workspaceRoot` je apsolutan; relativni izvori se računaju od njega.
-
-- `projectRoots`: folderi u kojima se traže projekti.
-- `projectDepth`: koliko nivoa ispod njih (1–5; bez polja 1). Projekat je folder sa manifestom (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `.sln`, `.csproj`) ili sa `.git`, `CLAUDE.md`, `AGENTS.md`. U manifest projekat se ne ulazi dublje; u git/CLAUDE projekat se ulazi i nalaze se projekti u njemu.
-- `extraProjects`: dodatni projekti bez ijednog markera.
-- `skillRoots`: putanja, profil, label.
-- `pluginRegistries`: installed_plugins.json putanja i profil.
-- `mcpSources`: putanja, profil i format claude-json / mcp-json / codex-toml.
-- `documents`: putanja i naslov dokumenta.
-
-Config argument možeš zadati sa `refresh --config PATH`; relativni PATH se računa od Archify roota, ne cwd-a. Bez `--config` koristi se `config/sources.local.json`. Privatne config fajlove praviš ponovo na novom računaru.
-Podrazumijevani izvori uključuju `.agents`, tri Claude profila i `.codex/config.toml`. `init` sam upisuje postojeće uobičajene foldere sa projektima (Desktop, Documents, OneDrive, WebstormProjects, source\repos i slične) sa `projectDepth: 3`, pa na novom računaru projekti dolaze bez ručnog upisivanja. Ako je nešto suvišno (npr. privremeni folder), dodaj njegovo ime u `excludeNames`.
-
-U katalogu je „Grupiši isto ime“ uključeno: isti plugin, skill ili hook u više profila je jedan red sa svim profilima i oznakom ×N, a detalji pokazuju sve instance. Isključi ga za listu svake instance posebno.
-Brojevi se računaju pri skeniranju. Ako YAML frontmatter nije strogo ispravan (npr. `Argumenti opciono: x` bez navodnika u `description`), Atlas ga čita blaže, kao Claude Code, i daje samo `info` upozorenje `lenient-frontmatter`. Tek kad ni to ne uspije, item dobija naziv foldera, prazan opis i `warn` upozorenje.
-
-## Komande, agenti i hookovi (Faza 4)
-
-Za svaki skill root koji se zove `skills` Atlas čita susjedne `commands/` i `agents/` (npr. `~\.claude\commands`), a iz pluginova `commands/`, `agents/` i `hooks/hooks.json`. Hookovi se čitaju iz `hooks` ključa u `claude-json` izvorima (`settings.json`). Novi config nije potreban.
-
-Komanda iz podfoldera dobija namespace (`git/commit.md` → `git:commit`). Hook se prikazuje kao `Događaj · matcher`, sa brojem i tipom hookova. Sadržaj hooka (`command`, `prompt`, `url`, `headers`, `env`) se nikad ne čita u izlaz. Spec: `docs/specs/2026-10-14-atlas-faza4-komande-agenti-hookovi-design.md`.
-
-## Neusklađenost i stanje (Faza 6)
-
-Skill lokacije imaju SHA-256 sadržaja cijelog foldera, bez izvoza sadržaja. Limiti su 1.024 fajla, 16 MiB po fajlu i 64 MiB ukupno; nečitljivi/nesigurni izvori daju „nepoznato“ i upozorenje. „Samo različit sadržaj“ filtrira razlike među uporedivim kopijama; detalji pokazuju hash varijante i porijeklo. Samostalni skillovi se porede međusobno, a plugin skillovi samo unutar istog plugina, marketplacea i poznate verzije. Različite plugin verzije same po sebi nisu drift.
-
-„Matrica hookova“ prikazuje event/matcher po profilima: broj, tip i settings/plugin porijeklo. Kolone imaju samo profili sa bar jednim hookom; ostali su navedeni ispod tabele. „—“ znači da deklaracija nije pronađena u snimku; pogledaj upozorenja nečitljivih izvora. Matrica zauzima i prostor liste; zatvara se dugmetom „Zatvori matricu“, tipkom Esc ili promjenom filtera/pretrage. Nema analize ili prikaza sadržaja komandi.
-
-Sortiranje „Zadnja aktivnost projekta“ koristi kasniji datum commita ili Claude session mtime. Detalji pokazuju granu, broj porcelain linija nekomitovanih promjena i datume sesija po profilu. Git komande su read-only sa timeoutom, bez opcionalnih lockova i bez fsmonitor komande. JSONL sadržaj se ne otvara. Bez Git-a/sesija prikazuje se unknown; to nije dokaz neaktivnosti. Izvještaj data/scan-report.md sadrži iste sažetke. Spec i plan Faze 6 su u docs/specs/ i docs/plans/.
-
-Primjer: pokreni `.\atlas.cmd refresh`, otvori `.\atlas.cmd open`, uključi „Samo različit sadržaj“ i izaberi skill da vidiš varijante. „Matrica hookova“ poredi deklaracije profila, a „Zadnja aktivnost projekta“ sortira projekte prema dostupnim datumima.
-
-Brzina: hashovi skillova se pamte u privatnom `data/skill-hash-cache.json` i fajlovi se ponovo čitaju samo kad se promijeni ime, veličina ili vrijeme izmjene nekog fajla u folderu skilla. Prvo skeniranje na novom računaru je sporije (čita sve fajlove; Windows Defender ih provjerava pri otvaranju), sljedeća traju nekoliko sekundi. Ako je jedan projekat stalno „unknown“ za Git i refresh čeka ~5 s, njegov Git indeks je zastario (npr. poslije kopiranja foldera): jednom pokreni `git status` u tom projektu, pa se indeks osvježi.
-
-Isti hash ne znači da je skill učitan u sesiji. `lastSessionAt` je mtime fajla, a ne vrijeme posljednje poruke ili dokaz rada. Claude Code može obrisati stare sesije prema `cleanupPeriodDays`; arhivirane/obrisane sesije zato nisu u ovom snimku. Postavka se ne mijenja niti čita radi ovog pregleda. Izvor: [Claude Code settings](https://code.claude.com/docs/en/settings).
-
-## Tačnost i privatnost
-
-MCP „deklarisan u konfiguraciji“ ne znači da server radi. Skill na disku ne znači da je učitan u sesiji.
-Skillovi se ne povezuju automatski sa projektima. Linkovi zadržavaju logičku putanju, cilj i profil.
-Iz MCP objekata izvoze se samo dozvoljena opisna polja, bez args/env vrijednosti/URL/header sadržaja.
-Skener ne izvršava projekte, skillove ili komande. Izvorni fajlovi se ne mijenjaju.
-Katalog sadrži privatne putanje: output, data i sources.local.json se ne objavljuju i nisu u Gitu.
-
-Izlazi se pripremaju u stagingu; journal i backupi omogućavaju oporavak poslije prekida procesa.
-Lock fajl može ostati na disku i poslije završetka: vlasništvo određuje OS lock, ne postojanje fajla.
-Oporavak ne garantuje disk durability poslije nestanka struje. Ne uklanjaj ručno recovery backup/journal tokom rada.
-
-## Testovi
-
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
-```
-
-Browser provjera:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-$env:PYTHONUTF8 = "1"
-$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\.playwright-browsers"
-.\.venv\Scripts\python.exe -m playwright install chromium
-$env:ATLAS_E2E = "1"
-.\.venv\Scripts\python.exe -m unittest discover -s tests/e2e -p "test_*.py" -v
-```
-
-Testovi koriste lažne konfiguracije sa sentinel tajnama; browser test otvara file:// katalog i provjerava odsustvo mrežnih zahtjeva.
-Screenshoti i performanse su u `output/e2e/`, stvarna verifikacija u `output/verification.md`.
-
-## Obim
-
-Faza 1 pravi katalog; Faza 2 dodaje lokalne bilješke; Faza 3 lokalne Archify mape i praćenje njihove zastarjelosti; Faza 4 slash komande, agente i hookove; Faza 5 pronalaženje, grupisanje i pokretanje; Faza 6 neusklađenost skillova, matricu hookova i stanje projekata. Server, cloud i browser uređivanje nisu uključeni.
-
-## Lokalne mape (Faza 3)
-
-Mape koriste zaseban open-source [Archify renderer](https://github.com/tt-a1i/archify), MIT licenca. Za mapiranje treba **Node.js 18+** na PATH-u ili Node iz lokalnog Playwright drivera.
-
-Pinovana verzija je u `config/archify-upstream.json`, zajedno sa SHA-256 hashom ZIP arhive; instaler odbija arhivu čiji hash ne odgovara i tada ništa ne instalira. Lokalni vendor nije u Gitu. Na novom računaru ga pripremi:
+Project maps are workflow diagrams rendered by the open-source [Archify renderer](https://github.com/tt-a1i/archify) (MIT). They need **Node.js 18+** on PATH or the Node bundled with Playwright. Install the pinned renderer once:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -WithMaps
 ```
 
-Za kompletne razvojne/browser zavisnosti i lokalni Node iz Playwrighta:
+The version, commit and the SHA-256 of the download are pinned in `config/archify-upstream.json`. The installer refuses an archive whose hash does not match and then installs nothing. The renderer lives in `vendor/archify` (not in Git), with no global install and no update check.
+
+**Describing a map.** Each map is a private file `config/maps/<slug>.json` (not in Git, because this repository is public). It names the catalog project, a title, lanes, and components; each component points to a source file and a line of text that marks the evidence. The field format is shown in `tests/test_mapspec.py` and `docs/specs/2026-10-14-atlas-faza5-pronalazenje-grupisanje-pokretanje-design.md`.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -WithMaps -Development
+$env:PYTHONPATH = "src"
+.\.venv\Scripts\python.exe tools\make_map.py creative-forge   # one map
+.\.venv\Scripts\python.exe tools\make_map.py --all            # every described map
+.\.venv\Scripts\python.exe tools\make_map.py --stale          # only maps that are not current
 ```
 
-Nema globalne instalacije skillova, npm instalacije ili API ključa. Potrebna su dva lokalna JSON fajla: analysis sa projektnim ID-jem/rootom, komponentama, vezama, relativnim source putanjama, linijama i SHA-256 hashovima; i native Archify JSON prema shemi iz vendor/archify/archify/schemas/. Demo inputs nastaju tek poslije pripreme demonstracije, ne dolaze iz privatnog data foldera.
+The tool reads the project's files, records lines and SHA-256 hashes in `data/map-input/<slug>/analysis.json`, publishes the map and runs the renderer's `finalize` checks. Run it after `refresh`.
 
-U detaljima projekta vidiš naslov mape, relativni link i status: Aktuelna, Zastarjela ili Neprovjerena. Status poredi lokalne SHA-256 hashove relevantnih source fajlova sa sačuvanom analizom. Promjena ili brisanje fajla daje Zastarjela; nepotpuna/nečitljiva evidencija daje Neprovjerena. To nije provjera javnog Git commita.
+**Map status** in project details: "Aktuelna" (current), "Zastarjela" (stale: an evidence file changed or was deleted) or "Neprovjerena" (unverified: evidence incomplete or unreadable). Status compares local file hashes with the saved analysis; it is not a check against a Git commit.
+
+The lower-level command, if you write the inputs yourself:
 
 ```powershell
-.\atlas.cmd map PROJECT_ID --analysis data/moja-analiza.json --input data/moja-mapa.json --slug moj-projekat --type workflow
+.\atlas.cmd map PROJECT_ID --analysis data/my-analysis.json --input data/my-map.json --slug my-project --type workflow
 ```
 
-PROJECT_ID je ID projektnog itema iz detalja kataloga. Analiza mora navesti isti ID i stvarnu projektnu lokaciju. Native JSON mora pratiti lokalnu upstream Archify shemu. Podržani tipovi su workflow i architecture. Komanda validira i renderuje u stagingu; tek nakon uspjeha objavljuje HTML, oba JSON izvora, registar i katalog zajedno. Greška čuva stare izlaze.
+`--type` is `workflow` or `architecture`. The command validates and renders in staging, then publishes the HTML, both JSON inputs, the map registry and the catalog together. On error, the previous outputs stay.
 
-Upstream je lokalno u vendor/archify, sa verzijom/commitom u data/archify-version.json i MIT licencom. Koristi se postojeći lokalni Node iz Playwright drivera ili Node na PATH-u. Nema globalne instalacije ili update provjere. Upstream može zahtijevati dodatnu sandbox dozvolu da provjeri Windows putanje; nikad ne zaobilaziti njegovu provjeru.
+## Accuracy and privacy
 
-Mapa projekta se opisuje u `config/maps/<slug>.json` (privatno, van Gita jer je repo javan): projekt iz kataloga, naslov, trake (lanes) i komponente sa fajlom i tekstom koji označava liniju dokaza. Pravi se i obnavlja iz Archify foldera, poslije `refresh`:
+- The catalog is a snapshot of the disk at scan time. An MCP server "declared in configuration" is not proof that it runs; a skill on disk is not proof that it is loaded in a session; the same hash is not proof of use.
+- Skills are not linked to projects automatically. Links keep the logical path, the target and the profile.
+- From MCP configs only descriptive fields are exported: name, profile, scope, project path, transport, executable name and environment variable **names**. Never `args`, env values, URLs or headers.
+- From hooks only event, matcher, count and type are exported. Never `command`, `prompt`, `url`, `headers` or `env`.
+- The page loads nothing from the network (strict CSP); all text goes into the page as plain text.
+- `config/sources.local.json`, `config/overrides.json`, `config/maps/`, `data/`, `output/`, `.venv/`, `.playwright-browsers/`, `vendor/` and `.tools/` are not in Git. Copy notes to another computer yourself if you want them; item IDs depend on local paths.
+- Claude Code may delete old sessions according to `cleanupPeriodDays`, so deleted sessions are not in the snapshot ([Claude Code settings](https://code.claude.com/docs/en/settings)).
+
+**Safe publishing.** Outputs are prepared in staging and published with backups and a journal, so an interrupted run is rolled back or completed on the next command. Parallel runs are refused by a lock. The lock file may stay on disk after a run; the OS lock decides ownership. Recovery does not guarantee durability after a power loss. Do not delete recovery backups or the journal by hand while Atlas runs.
+
+## Performance
+
+Skill hashes are cached in `data/skill-hash-cache.json` (private). A skill's files are read again only when a file name, size or modification time in its folder changes. The first scan on a new computer is slower because every file is read (Windows Defender checks each file it opens); later scans take a few seconds.
+
+If one project always shows Git `unknown` and refresh waits about 5 s, that project's Git index is probably stale (for example after copying the folder). Running `git status` once inside that project refreshes the index. Atlas itself never writes to your repositories.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Python not found | Run setup with `-PythonExe` and the full path to `python.exe`. |
+| `.venv` missing | Run setup again. Do not copy an old environment. |
+| Empty catalog or many warnings | Point `config/sources.local.json` at the sources you really use, then `refresh`. |
+| A folder you do not want shows up as a project | Add its name to `excludeNames`. |
+| Browser shows an old version | Press Ctrl+F5, or open the catalog through the shortcut. |
+| Maps do not render | Check Node.js and `vendor/archify` (`setup.ps1 -WithMaps`). Never bypass the renderer's path-safety checks. |
+
+A GitHub login is only needed to push or to clone a private copy, not for local use.
+
+## Development and tests
 
 ```powershell
-$env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py creative-forge
-$env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py --all
-$env:PYTHONPATH = "src"; .\.venv\Scripts\python.exe tools\make_map.py --stale
+# unit and integration tests
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
+
+# include browser tests (after setup.ps1 -Development)
+$env:PYTHONUTF8 = "1"
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\.playwright-browsers"
+$env:ATLAS_E2E = "1"
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-Alat čita izvore projekta, upisuje linije i SHA-256 hashove u `data/map-input/<slug>/analysis.json`, objavljuje mapu i pokreće upstream `finalize`. Kad se projekat promijeni, mapa u katalogu postaje „Zastarjela“; ponovi komandu. Polja opisa i primjer su u `docs/specs/2026-10-14-atlas-faza5-pronalazenje-grupisanje-pokretanje-design.md` i `tests/test_mapspec.py`. Isporučena mapa atlas-demo ostaje lokalna demonstracija toka Atlasa. Viewer kontrole upstream mape koriste engleski fallback; naslovi našeg kataloga i mapa su na BCS-u.
+Tests use fake configs with sentinel secrets and check that none of them reach any output. Browser tests open the catalog over `file://` and fail on any network request. Screenshots and performance numbers go to `output/e2e/`. The search latency target is a p95 under 50 ms for 2,000 items on a local machine; CI on GitHub runs the same suite on Windows on every push with a looser limit (`ATLAS_PERF_P95_MS=200`) because shared runners are slower.
 
-## Struktura projekta
+Rules for contributors and AI agents are in `AGENTS.md`. Each phase has a spec in `docs/specs/` and, where needed, a plan in `docs/plans/`. A new data type or source needs a spec first.
 
-- src/atlas/: CLI, skeneri, bilješke, mape i offline UI.
-- tests/: unit, integration i browser testovi.
-- docs/specs/ i docs/plans/: specifikacije i planovi faza 1–5.
-- .github/workflows/ci.yml: testovi na svaki push (Windows, uključujući browser testove).
-- config/sources.example.json: primjer izvora za vlastiti računar.
-- setup.ps1 i atlas.cmd: instalacija i svakodnevni rad.
-- tools/: lokalna instalacija renderera i provjere.
+## Project layout
 
-## Privatnost i prenos
+| Path | Contents |
+|---|---|
+| `src/atlas/` | CLI, scanners, notes, maps, state checks and the offline UI (`ui/`) |
+| `tests/` | Unit, integration and browser tests (`tests/e2e/`) |
+| `docs/specs/`, `docs/plans/` | Specifications and plans for phases 1 to 6 |
+| `config/sources.example.json` | Example source config |
+| `config/archify-upstream.json` | Pinned map renderer version and archive hash |
+| `setup.ps1`, `atlas.cmd` | Install and daily use |
+| `tools/` | Map tool, Desktop shortcut, renderer installer, verification helpers |
+| `.github/workflows/ci.yml` | CI: full test suite on Windows on every push |
 
-U Git ne ulaze privatni configi, bilješke, data/, output/, .venv/, browseri, vendor/ ili .tools/. Svaki računar pravi svoj inventar. Bilješke prenesi zasebno ako želiš; identitet stavke zavisi od lokalne putanje.
-
-## Ako nešto ne radi
-
-- Python nije pronađen: koristi -PythonExe sa punom putanjom do instaliranog Pythona.
-- Prazan katalog/upozorenja: podesi stvarne izvore u lokalnom configu.
-- Nema .venv: pokreni setup, bez kopiranja starog okruženja.
-- Mape: provjeri Node i lokalni vendor; ne uklanjaj upstream path-safety provjere.
-- GitHub prijava je potrebna za push/privatni clone, ne za lokalno korištenje.
-
-Za novo skeniranje pokreni atlas.cmd refresh, a za otvaranje atlas.cmd open.
+**Scope.** Phase 1: catalog. Phase 2: local notes. Phase 3: project maps and staleness. Phase 4: commands, agents and hooks. Phase 5: project discovery, grouping and the no-terminal launcher. Phase 6: skill drift, hook matrix and project activity. There is no server, no cloud and no editing in the browser.
