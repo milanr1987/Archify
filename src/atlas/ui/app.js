@@ -2,14 +2,16 @@
   "use strict";
 
   var PAGE = 300;
-  var KIND_ORDER = ["project", "skill", "plugin", "mcp", "document"];
-  var KIND_LABELS = { project: "Projekti", skill: "Skillovi", plugin: "Pluginovi", mcp: "MCP serveri", document: "Dokumenti" };
-  var KIND_SINGULAR = { project: "projekat", skill: "skill", plugin: "plugin", mcp: "MCP server", document: "dokument" };
+  var ORIGIN_KINDS = { skill: true, command: true, agent: true, hook: true };
+  var KIND_ORDER = ["project", "skill", "plugin", "mcp", "document", "command", "agent", "hook"];
+  var KIND_LABELS = { project: "Projekti", skill: "Skillovi", plugin: "Pluginovi", mcp: "MCP serveri", document: "Dokumenti", command: "Komande", agent: "Agenti", hook: "Hookovi" };
+  var KIND_SINGULAR = { project: "projekat", skill: "skill", plugin: "plugin", mcp: "MCP server", document: "dokument", command: "komanda", agent: "agent", hook: "hook" };
   var META_LABELS = {
     projectType: "Tip projekta", scriptNames: "Komande", markers: "Markeri", marketplace: "Marketplace",
     version: "Verzija", scope: "Scope", projectPath: "Projekat", installedAt: "Instaliran",
     lastUpdated: "Ažuriran", transport: "Transport", executableName: "Izvršni fajl",
-    envNames: "Env varijable (samo imena)", sourceFormat: "Format izvora", referenceStatus: "Vrsta reference"
+    envNames: "Env varijable (samo imena)", sourceFormat: "Format izvora", referenceStatus: "Vrsta reference",
+    event: "Događaj", matcher: "Matcher", hookCount: "Broj hookova", hookTypes: "Tipovi hookova"
   };
   var RELATION_LABELS = {
     "contains:out": "Sadrži", "contains:in": "Dio plugina",
@@ -86,7 +88,7 @@
   function locationMatches(it, l) {
     if (state.profiles.size && !(l.profile && state.profiles.has(l.profile))) return false;
     if (state.origin !== "all") {
-      if (it.kind !== "skill") return false;
+      if (!ORIGIN_KINDS[it.kind]) return false;
       var origin = l.origin || "";
       if (state.origin === "standalone" && origin !== "standalone") return false;
       if (state.origin === "plugin" && origin.indexOf("plugin:") !== 0) return false;
@@ -220,6 +222,7 @@
     }
     body.appendChild(el("p", "evidence", it.evidence === "observed" ? "Pronađeno na disku" : "Dokumentovano; trenutno stanje nije potvrđeno"));
     if (it.kind === "mcp") body.appendChild(el("p", "note", "Deklarisan u konfiguraciji. Katalog ne provjerava da li server radi."));
+    if (it.kind === "hook") body.appendChild(el("p", "note", "Deklarisan u konfiguraciji; katalog ne provjerava da li se izvršava. Sadržaj komande se ne prikazuje."));
     if (it.kind === "document") body.appendChild(el("p", "note", "Sadržaj dokumenta opisuje stanje u vrijeme pisanja; skener ga ne potvrđuje."));
 
     body.appendChild(el("h3", null, it.locations.length === 1 ? "Lokacija" : "Lokacije (" + it.locations.length + ")"));
