@@ -168,6 +168,24 @@ class CatalogBrowserTests(unittest.TestCase):
         page.click("#clear-filters")
         self.assertEqual(page.locator("#count").text_content(), "8 stavki")
 
+    def test_list_scrolls_inside_its_box_and_page_stays_put(self):
+        page = self.open_page(self.perf, width=1440, height=900)
+        sizes = page.evaluate("""() => {
+            const list = document.getElementById('list');
+            return {listScroll: list.scrollHeight, listClient: list.clientHeight,
+                    overflow: getComputedStyle(list).overflowY,
+                    pageScroll: document.documentElement.scrollHeight, viewport: window.innerHeight,
+                    more: document.getElementById('more').getBoundingClientRect().bottom};
+        }""")
+        self.assertEqual(sizes["overflow"], "auto")
+        self.assertGreater(sizes["listScroll"], sizes["listClient"])
+        self.assertLessEqual(sizes["pageScroll"], sizes["viewport"] + 1)
+        self.assertLessEqual(sizes["more"], sizes["viewport"])
+        page.focus("#list")
+        for _ in range(30):
+            page.keyboard.press("ArrowDown")
+        self.assertGreater(page.evaluate("document.getElementById('list').scrollTop"), 0)
+
     def test_same_name_items_are_grouped_into_one_row(self):
         page = self.open_page(self.small)
         page.fill("#search", "dupe")
