@@ -20,3 +20,4 @@ config/sources.current.json
 .env
 .env.*
 !.env.example
+config/*.bak-*
