@@ -1,12 +1,12 @@
 {
-  "workspaceRoot": "C:\\Workspace",
+  "workspaceRoot": "C:\\Users\\Example\\Projects",
   "projectRoots": [
-    "."
+    ".",
+    "C:\\Users\\Example\\Desktop",
+    "C:\\Users\\Example\\Documents"
   ],
   "projectDepth": 3,
-  "extraProjects": [
-    "skill-evals"
-  ],
+  "extraProjects": [],
   "excludeNames": [
     "Archify",
     "node_modules",
@@ -94,20 +94,8 @@
   ],
   "documents": [
     {
-      "path": "my-claude-system.md",
-      "title": "Moj Claude sistem"
-    },
-    {
-      "path": "claude-skillovi-i-plugini-inventar.md",
-      "title": "Inventar skillova i pluginova (2026-09-07)"
-    },
-    {
-      "path": "claude-ai-engineer-playbook.md",
-      "title": "AI engineer playbook"
-    },
-    {
-      "path": "MEDIUM_CLAUDE\\INDEX.md",
-      "title": "Medium indeks"
+      "path": "notes\\ai-setup.md",
+      "title": "My AI setup notes"
     }
   ]
 }

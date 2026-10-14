@@ -165,10 +165,25 @@ def _within(child: Path, parent: Path) -> bool:
         return False
 
 
-def default_config(home: Path, workspace: Path) -> dict:
-    def at(*parts: str) -> str:
-        return str(Path(home, *parts))
+CLAUDE_PROFILE_DIR = re.compile(r"^\.claude(?:-([a-z0-9][a-z0-9_-]{0,31}))?$")
 
+
+def _claude_profiles(home: Path) -> list[tuple[str, Path]]:
+    """Claude profili koji postoje: ~/.claude je "claude", ~/.claude-<ime> je "<ime>"."""
+    found = []
+    try:
+        names = sorted(os.listdir(home))
+    except OSError:
+        return found
+    for name in names:
+        match = CLAUDE_PROFILE_DIR.fullmatch(name)
+        if match and Path(home, name).is_dir():
+            found.append((match.group(1) or "claude", Path(home, name)))
+    return found
+
+
+def default_config(home: Path, workspace: Path) -> dict:
+    """Config za ovaj računar: samo izvori koji stvarno postoje, bez ličnih dokumenata."""
     roots: list[str] = []
     seen: set[str] = set()
     for folder in PROJECT_FOLDERS:
@@ -178,38 +193,31 @@ def default_config(home: Path, workspace: Path) -> dict:
             seen.add(key)
             roots.append(str(path))
     inside = any(_within(workspace, Path(root)) for root in roots)
+    skill_roots, registries, mcp_sources = [], [], []
+    if Path(home, ".agents", "skills").is_dir():
+        skill_roots.append({"path": str(Path(home, ".agents", "skills")), "profile": "agents", "label": ".agents"})
+    for profile, folder in _claude_profiles(home):
+        if (folder / "skills").is_dir():
+            skill_roots.append({"path": str(folder / "skills"), "profile": profile, "label": folder.name})
+        if (folder / "plugins" / "installed_plugins.json").is_file():
+            registries.append({"path": str(folder / "plugins" / "installed_plugins.json"), "profile": profile})
+        # Podrazumijevani profil drži .claude.json u home folderu; ostali u svom folderu.
+        state = Path(home, ".claude.json") if profile == "claude" else folder / ".claude.json"
+        for source in (state, folder / "settings.json"):
+            if source.is_file():
+                mcp_sources.append({"path": str(source), "format": "claude-json", "profile": profile})
+    if Path(home, ".codex", "config.toml").is_file():
+        mcp_sources.append({"path": str(Path(home, ".codex", "config.toml")), "format": "codex-toml", "profile": "codex"})
     return {
         "workspaceRoot": str(workspace),
         "projectRoots": roots if inside else [".", *roots],
         "projectDepth": 3,
-        "extraProjects": ["skill-evals"] if Path(workspace, "skill-evals").is_dir() else [],
+        "extraProjects": [],
         "excludeNames": list(DEFAULT_EXCLUDES),
-        "skillRoots": [
-            {"path": at(".agents", "skills"), "profile": "agents", "label": ".agents"},
-            {"path": at(".claude", "skills"), "profile": "claude", "label": ".claude"},
-            {"path": at(".claude-max", "skills"), "profile": "max", "label": ".claude-max"},
-            {"path": at(".claude-pro", "skills"), "profile": "pro", "label": ".claude-pro"},
-        ],
-        "pluginRegistries": [
-            {"path": at(".claude", "plugins", "installed_plugins.json"), "profile": "claude"},
-            {"path": at(".claude-max", "plugins", "installed_plugins.json"), "profile": "max"},
-            {"path": at(".claude-pro", "plugins", "installed_plugins.json"), "profile": "pro"},
-        ],
-        "mcpSources": [
-            {"path": at(".claude.json"), "format": "claude-json", "profile": "claude"},
-            {"path": at(".claude", "settings.json"), "format": "claude-json", "profile": "claude"},
-            {"path": at(".claude-max", ".claude.json"), "format": "claude-json", "profile": "max"},
-            {"path": at(".claude-max", "settings.json"), "format": "claude-json", "profile": "max"},
-            {"path": at(".claude-pro", ".claude.json"), "format": "claude-json", "profile": "pro"},
-            {"path": at(".claude-pro", "settings.json"), "format": "claude-json", "profile": "pro"},
-            {"path": at(".codex", "config.toml"), "format": "codex-toml", "profile": "codex"},
-        ],
-        "documents": [
-            {"path": "my-claude-system.md", "title": "Moj Claude sistem"},
-            {"path": "claude-skillovi-i-plugini-inventar.md", "title": "Inventar skillova i pluginova (2026-09-07)"},
-            {"path": "claude-ai-engineer-playbook.md", "title": "AI engineer playbook"},
-            {"path": "MEDIUM_CLAUDE\\INDEX.md", "title": "Medium indeks"},
-        ],
+        "skillRoots": skill_roots,
+        "pluginRegistries": registries,
+        "mcpSources": mcp_sources,
+        "documents": [],
     }
 
 

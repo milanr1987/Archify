@@ -7,7 +7,7 @@ from pathlib import Path
 from atlas.config import ConfigError, allowed_roots, default_config, load_config, parse_config
 
 REPO = Path(__file__).resolve().parents[1]
-WS = "C:\\Radni folder\\Twiter_claude"
+WS = "C:\\Radni folder\\Projects"
 
 
 def minimal(**extra):
@@ -95,13 +95,32 @@ class LoadConfigTests(unittest.TestCase):
 
 
 class DefaultConfigTests(unittest.TestCase):
-    def test_default_config_is_valid_and_covers_profiles(self):
-        cfg = parse_config(default_config(Path("C:\\Users\\Milan"), Path(WS)))
-        self.assertEqual({r.profile for r in cfg.skill_roots}, {"agents", "claude", "max", "pro"})
-        self.assertEqual({r.profile for r in cfg.plugin_registries}, {"claude", "max", "pro"})
-        self.assertIn("codex-toml", {s.format for s in cfg.mcp_sources})
-        self.assertIn("Archify", cfg.exclude_names)
-        self.assertEqual(cfg.extra_projects, ())
+    def test_default_config_on_empty_home_is_valid_and_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = default_config(Path(tmp), Path(WS))
+            cfg = parse_config(data)
+            self.assertEqual((cfg.skill_roots, cfg.plugin_registries, cfg.mcp_sources, cfg.documents), ((), (), (), ()))
+            self.assertEqual(data["extraProjects"], [])
+            self.assertIn("Archify", cfg.exclude_names)
+
+    def test_default_config_detects_existing_profiles_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            for rel in (".claude/skills", ".claude-max/skills", ".claude-Bad!/skills", ".agents/skills", ".claude/plugins"):
+                (home / rel).mkdir(parents=True)
+            for rel in (".claude/plugins/installed_plugins.json", ".claude/settings.json", ".claude.json",
+                        ".claude-work/settings.json", ".codex/config.toml"):
+                (home / rel).parent.mkdir(parents=True, exist_ok=True)
+                (home / rel).write_text("{}", encoding="utf-8")
+            cfg = parse_config(default_config(home, Path(WS)))
+            self.assertEqual({(r.profile, r.label) for r in cfg.skill_roots},
+                             {("agents", ".agents"), ("claude", ".claude"), ("max", ".claude-max")})
+            self.assertEqual({r.profile for r in cfg.plugin_registries}, {"claude"})
+            self.assertEqual({(os.path.relpath(s.path, home), s.profile, s.format) for s in cfg.mcp_sources}, {
+                (".claude.json", "claude", "claude-json"), (os.path.join(".claude", "settings.json"), "claude", "claude-json"),
+                (os.path.join(".claude-work", "settings.json"), "work", "claude-json"),
+                (os.path.join(".codex", "config.toml"), "codex", "codex-toml")})
+            self.assertEqual(cfg.documents, ())
 
     def test_default_config_discovers_common_project_folders(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -109,12 +128,11 @@ class DefaultConfigTests(unittest.TestCase):
             for name in ("Desktop", "Documents", "WebstormProjects", "source/repos"):
                 (home / name).mkdir(parents=True)
             inside = home / "Desktop/ws"
-            (inside / "skill-evals").mkdir(parents=True)
+            inside.mkdir(parents=True)
             data = default_config(home, inside)
             self.assertEqual(data["projectDepth"], 3)
             self.assertEqual(data["projectRoots"], [str(home / n) for n in
                              ("Desktop", "Documents", "WebstormProjects", "source/repos")])
-            self.assertEqual(data["extraProjects"], ["skill-evals"])
             outside = default_config(home, home / "elsewhere")
             self.assertEqual(outside["projectRoots"][0], ".")
             parse_config(data)
