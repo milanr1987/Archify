@@ -3,6 +3,7 @@
   "projectRoots": [
     "."
   ],
+  "projectDepth": 3,
   "extraProjects": [
     "skill-evals"
   ],

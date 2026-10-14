@@ -2,7 +2,7 @@ import json
 
 from helpers import TempDirTestCase, write
 
-from atlas.config import parse_config
+from atlas.config import ConfigError, parse_config
 from atlas.identity import norm_path
 from atlas.model import Relation
 from atlas.scan.collector import Collector
@@ -100,3 +100,43 @@ class DocumentTests(TempDirTestCase):
         self.assertEqual(document_title(str(write(self.tmp / "a.md", "x\n# Naslov  \n"))), "Naslov")
         self.assertIsNone(document_title(str(write(self.tmp / "b.md", "bez naslova\n"))))
         self.assertIsNone(document_title(str(self.tmp / "nema.md")))
+
+
+class ProjectDiscoveryTests(TempDirTestCase):
+    def setUp(self):
+        super().setUp()
+        r = self.tmp / "root"
+        write(r / "a/b/deep-app/package.json", json.dumps({"name": "deep-app"}))
+        (r / "repo/.git").mkdir(parents=True)
+        write(r / "repo/sub/package.json", json.dumps({"name": "sub-app"}))
+        write(r / "repo/docs/CLAUDE.md", "# nije projekat\n")
+        (r / "repo/inner/.git").mkdir(parents=True)
+        write(r / "kb/CLAUDE.md", "# KB\n")
+        write(r / "strong/package.json", json.dumps({"name": "strong"}))
+        write(r / "strong/pkg/package.json", json.dumps({"name": "workspace-pkg"}))
+        write(r / ".hidden/x/package.json", "{}")
+        write(r / "node_modules/x/package.json", "{}")
+        write(r / "too/deep/deeper/deepest/package.json", json.dumps({"name": "too-deep"}))
+        self.root = r
+
+    def names(self, depth):
+        data = {"workspaceRoot": str(self.tmp), "projectRoots": [str(self.root)], "excludeNames": ["node_modules"]}
+        if depth is not None:
+            data["projectDepth"] = depth
+        c = Collector()
+        scan_projects(parse_config(data), c)
+        return {i.name: i for i in c.items.values() if i.kind == "project"}
+
+    def test_default_depth_keeps_direct_children_only(self):
+        self.assertEqual(set(self.names(None)), {"repo", "kb", "strong"})
+
+    def test_deeper_search_with_git_and_claude_markers(self):
+        found = self.names(3)
+        self.assertEqual(set(found), {"deep-app", "repo", "sub-app", "inner", "kb", "strong"})
+        self.assertEqual(found["repo"].metadata, {"projectType": "other", "markers": [".git"]})
+        self.assertEqual(found["kb"].metadata, {"projectType": "other", "markers": ["CLAUDE.md"]})
+
+    def test_invalid_depth_rejected(self):
+        for value in (0, 6, "3", True, 2.5):
+            with self.subTest(value=value), self.assertRaises(ConfigError):
+                parse_config({"workspaceRoot": str(self.tmp), "projectDepth": value})

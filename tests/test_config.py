@@ -101,7 +101,23 @@ class DefaultConfigTests(unittest.TestCase):
         self.assertEqual({r.profile for r in cfg.plugin_registries}, {"claude", "max", "pro"})
         self.assertIn("codex-toml", {s.format for s in cfg.mcp_sources})
         self.assertIn("Archify", cfg.exclude_names)
-        self.assertEqual(cfg.extra_projects, (os.path.normpath(WS + "\\skill-evals"),))
+        self.assertEqual(cfg.extra_projects, ())
+
+    def test_default_config_discovers_common_project_folders(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            for name in ("Desktop", "Documents", "WebstormProjects", "source/repos"):
+                (home / name).mkdir(parents=True)
+            inside = home / "Desktop/ws"
+            (inside / "skill-evals").mkdir(parents=True)
+            data = default_config(home, inside)
+            self.assertEqual(data["projectDepth"], 3)
+            self.assertEqual(data["projectRoots"], [str(home / n) for n in
+                             ("Desktop", "Documents", "WebstormProjects", "source/repos")])
+            self.assertEqual(data["extraProjects"], ["skill-evals"])
+            outside = default_config(home, home / "elsewhere")
+            self.assertEqual(outside["projectRoots"][0], ".")
+            parse_config(data)
 
     def test_allowed_roots_keeps_existing_only(self):
         with tempfile.TemporaryDirectory() as tmp:
