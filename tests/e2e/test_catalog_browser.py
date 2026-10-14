@@ -65,6 +65,33 @@ def synthetic_inventory(extra: int = 0) -> tuple[Inventory, dict[str, str]]:
 
 @unittest.skipUnless(E2E, "browser test: postavi ATLAS_E2E=1 (komanda je u README)")
 class CatalogBrowserTests(unittest.TestCase):
+    def test_phase6_drift_matrix_and_activity(self):
+        inv, _ = synthetic_inventory()
+        skills=[i for i in inv.items if i.kind=='skill' and i.name=='dupe']
+        for index,item in enumerate(skills):
+            item.locations[0].contentHash=('a' if index==0 else 'b')*64
+            item.metadata={'contentStatus':'razlikuje se','ownDrift':'true'}
+        project=next(i for i in inv.items if i.kind=='project')
+        project.metadata.update(lastCommitAt='2026-10-14T10:00:00+00:00',dirtyCount='3',branch='main',lastSessionAt='unknown')
+        inv.items.append(Item(make_id('hook','phase6'),'hook','Stop',locations=[Location('settings','max',origin='standalone')],metadata={'event':'Stop','hookCount':'1','hookTypes':['command']}))
+        inv.profiles=['max','pro']
+        path=Path(self._tmp.name)/'phase6.html'
+        path.write_text(render_catalog(inv,inventory_hash(inv)),encoding='utf-8')
+        page=self.open_page(path)
+        page.locator('#f-drift').check()
+        self.assertEqual(self.names(page),['dupe'])
+        page.locator('.row').click()
+        page.locator('#detail-title').wait_for()
+        self.assertIn('Varijante sadržaja',page.locator('#detail-body').text_content())
+        self.assertIn('aaaaaaaaaaaa',page.locator('#detail-body').inner_text())
+        page.locator('#hook-matrix-toggle').click()
+        self.assertIn('nema u ovom profilu',page.locator('#hook-matrix').inner_text())
+        page.locator('#clear-filters').click()
+        page.locator('#activity-sort').select_option('activity')
+        self.assertEqual(page.locator('.row-name').first.inner_text(),project.name)
+        self.assertIn('nekomitovano: 3',page.locator('.row').first.inner_text())
+        self.assertFalse([u for u in self.requests if u.startswith(('http:', 'https:'))])
+
     @classmethod
     def setUpClass(cls):
         if sync_playwright is None:

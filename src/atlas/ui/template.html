@@ -24,6 +24,7 @@
     <label for="search" class="visually-hidden">Pretraga</label>
     <input id="search" type="search" placeholder="Pretraži ime, opis ili putanju (prečica /)" autocomplete="off" spellcheck="false">
     <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="filters">Filteri</button>
+    <button type="button" id="hook-matrix-toggle" class="matrix-toggle">Matrica hookova</button>
   </div>
 </header>
 <main class="layout">
@@ -38,6 +39,7 @@
     <fieldset><legend>Ostalo</legend>
       <label><input type="checkbox" id="f-dup"> Samo duplikati</label>
       <label><input type="checkbox" id="f-link"> Samo preko linka</label>
+      <label><input type="checkbox" id="f-drift"> Samo različit sadržaj</label>
     </fieldset>
     <button type="button" id="clear-filters">Očisti filtere</button>
   </aside>
@@ -45,6 +47,7 @@
     <div class="list-head">
       <p class="count" id="count" aria-live="polite"></p>
       <label class="group-toggle"><input type="checkbox" id="f-group" checked> Grupiši isto ime</label>
+      <label class="sort-label">Sortiranje <select id="activity-sort"><option value="name">Po imenu</option><option value="activity">Zadnja aktivnost projekta</option></select></label>
     </div>
     <ul class="list" id="list" role="listbox" aria-label="Stavke"></ul>
     <p class="empty" id="empty" hidden>Nijedna stavka ne odgovara pretrazi i filterima. Probaj kraći pojam ili „Očisti filtere“.</p>
@@ -58,6 +61,7 @@
 <script type="application/json" id="atlas-data">{{DATA}}</script>
 <script type="application/json" id="atlas-overlay">{{OVERLAY}}</script>
 <script type="application/json" id="atlas-maps">{{MAPS}}</script>
+<script type="application/json" id="atlas-state">{{STATE}}</script>
 <script>{{SCRIPT}}</script>
 </body>
 </html>

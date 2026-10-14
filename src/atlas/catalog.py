@@ -7,6 +7,7 @@ from atlas.model import Inventory, inventory_from_dict, inventory_hash, inventor
 from atlas.paths import UI_DIR
 from atlas.overlay import Overlay, overlay_to_dict, overlay_from_dict
 from atlas.maps import validate_catalog_maps
+from atlas.state import skill_groups, hook_matrix
 
 DATA_OPEN = '<script type="application/json" id="atlas-data">'
 CSP = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:"
@@ -37,10 +38,12 @@ def _embed_payloads(html: str, inv: Inventory, overlay: Overlay | None, maps: li
     inventory_payload = embed_json(inventory_to_dict(inv))
     overlay_payload = embed_json(overlay_to_dict(overlay if overlay is not None else Overlay({})))
     map_payload = embed_json(validate_catalog_maps(maps))
+    profiles=sorted(set(inv.profiles)|{l.profile for i in inv.items for l in i.locations if l.profile})
+    state_payload=embed_json({'skills':skill_groups(inv.items), 'hooks':hook_matrix(inv.items,profiles), 'profiles':profiles})
     # Both placeholders replaced in a single pass: text containing placeholders stays literal.
     import re
-    payloads = {'DATA':inventory_payload, 'OVERLAY':overlay_payload, 'MAPS':map_payload}
-    return re.sub(r'\{\{(DATA|OVERLAY|MAPS)\}\}', lambda m: payloads[m[1]], html)
+    payloads = {'DATA':inventory_payload, 'OVERLAY':overlay_payload, 'MAPS':map_payload, 'STATE':state_payload}
+    return re.sub(r'\{\{(DATA|OVERLAY|MAPS|STATE)\}\}', lambda m: payloads[m[1]], html)
 
 
 def validate_catalog(html: str, inv_hash: str) -> None:
