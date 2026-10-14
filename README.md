@@ -107,7 +107,7 @@ Komanda iz podfoldera dobija namespace (`git/commit.md` → `git:commit`). Hook 
 
 Skill lokacije imaju SHA-256 sadržaja cijelog foldera, bez izvoza sadržaja. Limiti su 1.024 fajla, 16 MiB po fajlu i 64 MiB ukupno; nečitljivi/nesigurni izvori daju „nepoznato“ i upozorenje. „Samo različit sadržaj“ filtrira razlike među uporedivim kopijama; detalji pokazuju hash varijante i porijeklo. Samostalni skillovi se porede međusobno, a plugin skillovi samo unutar istog plugina, marketplacea i poznate verzije. Različite plugin verzije same po sebi nisu drift.
 
-„Matrica hookova“ prikazuje event/matcher po svim konfigurisanima profilima: broj, tipove i settings/plugin porijeklo. „Nema u ovom profilu“ znači da deklaracija nije pronađena u snimku; pogledaj upozorenja nečitljivih izvora. Nema analize ili prikaza sadržaja komandi.
+„Matrica hookova“ prikazuje event/matcher po profilima: broj, tip i settings/plugin porijeklo. Kolone imaju samo profili sa bar jednim hookom; ostali su navedeni ispod tabele. „—“ znači da deklaracija nije pronađena u snimku; pogledaj upozorenja nečitljivih izvora. Matrica zauzima i prostor liste; zatvara se dugmetom „Zatvori matricu“, tipkom Esc ili promjenom filtera/pretrage. Nema analize ili prikaza sadržaja komandi.
 
 Sortiranje „Zadnja aktivnost projekta“ koristi kasniji datum commita ili Claude session mtime. Detalji pokazuju granu, broj porcelain linija nekomitovanih promjena i datume sesija po profilu. Git komande su read-only sa timeoutom, bez opcionalnih lockova i bez fsmonitor komande. JSONL sadržaj se ne otvara. Bez Git-a/sesija prikazuje se unknown; to nije dokaz neaktivnosti. Izvještaj data/scan-report.md sadrži iste sažetke. Spec i plan Faze 6 su u docs/specs/ i docs/plans/.
 

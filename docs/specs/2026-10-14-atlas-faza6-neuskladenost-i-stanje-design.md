@@ -15,7 +15,7 @@ Postojeći duplicate_group ostaje grupisanje po imenu. Poređenje sadržaja ima 
 
 ## Hook matrica
 
-Inventar dobija sortiranu listu profila iz svih config skillRoots/pluginRegistries/mcpSources, uključujući profile bez stavki. Red je (event, matcher); ćelija agregira hookCount/hookTypes i porijeklo settings/plugin iz postojećih bezbjednih lokacija. Isti deklarisani izvor ne broji se dvaput. Prazna ćelija znači „nema u ovom profilu“ u snimku, ne dokaz da profil nema hook zbog nečitljivog izvora. Postojeća upozorenja ostaju vidljiva. Nema pristupa command/prompt/url/headers/env poljima u novoj obradi. UI tabela je skrolabilna unutar panela, bez horizontalnog page scrolla.
+Inventar dobija sortiranu listu profila iz svih config skillRoots/pluginRegistries/mcpSources, uključujući profile bez stavki. Red je (event, matcher); ćelija agregira hookCount/hookTypes i porijeklo settings/plugin iz postojećih bezbjednih lokacija. Isti deklarisani izvor ne broji se dvaput. Prazna ćelija znači „nema u ovom profilu“ u snimku, ne dokaz da profil nema hook zbog nečitljivog izvora. Postojeća upozorenja ostaju vidljiva. Nema pristupa command/prompt/url/headers/env poljima u novoj obradi. UI tabela je skrolabilna unutar panela, bez horizontalnog page scrolla. Revizija 2026-10-14 (čitljivost): kolone imaju samo profili sa bar jednim hookom, a ostali se navode ispod tabele („Profili bez ijednog hooka: …“), pa informacija ostaje; prazna ćelija je „—“ uz skriven tekst „nema u ovom profilu“ za čitače ekrana. Od 700 px matrica zauzima i prostor liste, ima dugme „Zatvori matricu“, a promjena filtera ili pretrage je zatvara.
 
 ## Projekti
 
