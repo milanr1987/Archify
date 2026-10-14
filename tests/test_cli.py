@@ -53,6 +53,13 @@ class CliTests(TempDirTestCase):
         self.assertFalse(self.catalog.exists())
         self.assertIn("Djelimičan pregled", out)
 
+    def test_scan_names_selected_config(self):
+        _, out, _ = run(["scan"], self.app)
+        self.assertIn(f"Config: {self.app / 'config/sources.local.json'}", out)
+        write(self.app / "config/sources.current.json", json.dumps(self.config, ensure_ascii=False))
+        _, out, _ = run(["scan"], self.app)
+        self.assertIn(f"Config: {self.app / 'config/sources.current.json'}", out)
+
     def test_build_without_inventory_fails(self):
         code, _, err = run(["build"], self.app)
         self.assertEqual(code, 1)

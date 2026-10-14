@@ -21,7 +21,8 @@ from atlas.maps import MapError, catalog_maps
 from atlas.mapops import publish_map
 
 KIND_LABELS = {"project": "projekti", "skill": "skillovi", "plugin": "pluginovi",
-               "mcp": "MCP", "document": "dokumenti"}
+               "mcp": "MCP", "document": "dokumenti",
+               "command": "komande", "agent": "agenti", "hook": "hookovi"}
 
 
 def _err(message: str) -> None:
@@ -56,6 +57,7 @@ def _cmd_init(paths: AppPaths, config_arg: str | None) -> int:
 def _scan(paths: AppPaths, config_arg: str | None) -> ScanOutcome:
     current = paths.config_dir / 'sources.current.json'
     selected = current if config_arg is None and current.is_file() else paths.resolve_config(config_arg)
+    print(f"Config: {selected}")
     return build_inventory(load_config(selected))
 
 
